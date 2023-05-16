@@ -149,7 +149,13 @@ class MeshtasticMQTT():
                             else:
                                 LongitudeEW = "W"
 
-                            Comment = 'MeshTastic ' + self.calldict[str(getattr(mp, "from"))][1] # add long name from DB
+                            snr = str(mp.rx_snr)
+                            if mp.rx_snr == 0:
+                                snr = 'n/a'
+                            rssi = str(mp.priority)
+                            if mp.priority == 0:
+                                rssi = 'n/a'
+                            Comment = 'MeshTastic ' + self.calldict[str(getattr(mp, "from"))][1] + ' SNR: ' + snr + ' dB RSSI: ' + rssi + ' dBm' # add long name from DB
 
                             # MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:={Latitude}{LatitudeNS}\{Longitude}{LongitudeEW}S{Comment}\n'
                             MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
