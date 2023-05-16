@@ -13,14 +13,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 # This call to setup() does all the work
 setup(
-    name="meshtastic_mqtt",
+    name="meshtastic_mqtt_aprs",
     version="1.0.1",
     description="A python script to translate Meshtastic MQTT location messages into a format that Traccar can understand.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/joshpirihi/meshtastic-mqtt",
-    author="joshpirihi",
-    author_email="josh.pirihi+meshtasticmqtt@gmail.com",
+    url="https://github.com/erstec/meshtastic-mqtt-aprs",
+    author="erstec",
+    author_email="ernis@fpvdev.com",
     license="MIT",
     classifiers=[
         "License :: OSI Approved :: MIT License",
@@ -28,12 +28,12 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     #include_package_data=True,
-    install_requires=["protobuf<=3.20.3", "pypubsub>=4.0.3", "requests", "paho-mqtt"],
+    install_requires=["protobuf<=3.20.3", "pypubsub>=4.0.3", "requests", "paho-mqtt", "aprslib"],
     python_requires='>=3.6',
-    packages=["meshtastic_mqtt"],
+    packages=["meshtastic_mqtt_aprs"],
     entry_points={
         "console_scripts": [
-            "meshtastic-mqtt = meshtastic_mqtt.meshtastic_mqtt:main",
+            "meshtastic-mqtt-aprs = meshtastic_mqtt_aprs.meshtastic_mqtt_aprs:main",
         ]
     },
 )
