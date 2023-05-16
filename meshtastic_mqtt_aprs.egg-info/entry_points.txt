@@ -1,0 +1,2 @@
+[console_scripts]
+meshtastic-mqtt-aprs = meshtastic_mqtt_aprs.meshtastic_mqtt_aprs:main

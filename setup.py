@@ -14,7 +14,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 # This call to setup() does all the work
 setup(
     name="meshtastic_mqtt_aprs",
-    version="1.0.1",
+    version="2.0.1",
     description="A python script to translate Meshtastic MQTT location messages into a format that Traccar can understand.",
     long_description=long_description,
     long_description_content_type="text/markdown",
