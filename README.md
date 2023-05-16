@@ -16,7 +16,7 @@ Clone the repo
 `cd meshtastic-mqtt`
 
 Edit the main script and enter your broker and/or traccar host details
-`nano meshtastic_mqtt/meshtastic_mqtt.py`
+`nano meshtastic_mqtt_aprs/meshtastic_mqtt_aprs.py`
 
 Install to your systen with pip
 `pip install .`

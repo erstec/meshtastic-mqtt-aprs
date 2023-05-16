@@ -15,7 +15,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="meshtastic_mqtt_aprs",
     version="2.0.1",
-    description="A python script to translate Meshtastic MQTT location messages into a format that Traccar can understand.",
+    description="A python script to translate Meshtastic MQTT location messages into a format that APRS can understand.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/erstec/meshtastic-mqtt-aprs",

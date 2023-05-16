@@ -1,7 +1,7 @@
 # python3.6
 
-import meshtastic_mqtt.portnums_pb2 as portnums_pb2
-from meshtastic_mqtt.portnums_pb2 import ENVIRONMENTAL_MEASUREMENT_APP, POSITION_APP
+import meshtastic_mqtt_aprs.portnums_pb2 as portnums_pb2
+from meshtastic_mqtt_aprs.portnums_pb2 import ENVIRONMENTAL_MEASUREMENT_APP, POSITION_APP
 
 import random
 import json
@@ -9,9 +9,9 @@ import json
 import aprslib
 from datetime import datetime
 
-import meshtastic_mqtt.mesh_pb2 as mesh_pb2
-import meshtastic_mqtt.mqtt_pb2 as mqtt_pb2
-import meshtastic_mqtt.environmental_measurement_pb2 as environmental_measurement_pb2
+import meshtastic_mqtt_aprs.mesh_pb2 as mesh_pb2
+import meshtastic_mqtt_aprs.mqtt_pb2 as mqtt_pb2
+import meshtastic_mqtt_aprs.environmental_measurement_pb2 as environmental_measurement_pb2
 
 from paho.mqtt import client as mqtt_client
 
