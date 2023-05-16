@@ -40,6 +40,8 @@ class MeshtasticMQTT():
     aprsHost = ''
     aprsPort = '14580'
     aprsPass = ''
+    aprsTable = '/'
+    aprsSymbol = '`'
     
     # Id -> Callsign DB
     calldict = {
@@ -101,32 +103,15 @@ class MeshtasticMQTT():
                         print("(CALL DB) Call is in DB, uploading to APRS")
                         if len(self.aprsHost) > 0 and len(self.aprsPort) > 0 and len(self.aprsHost) > 0:
                             print('------------------------ APRS sending... ------------------------ ')
-                            # traccarURL = "http://"+self.traccarHost+":5055?id="+str(getattr(mp, "from"))+"&lat="+str(pos.latitude_i * 1e-7)+"&lon="+str(pos.longitude_i * 1e-7)+"&altitude="+str(pos.altitude)+"&battery_level="+str(pos.battery_level)+"&hdop="+str(pos.PDOP)+"&accuracy="+str(pos.PDOP*0.03)
-                            # print(traccarURL)
-                            # submitted = requests.get(traccarURL)
-                            # print(submitted)
                             try:
                                 AIS = aprslib.IS(self.aprsCall, passwd=self.aprsPass, host=self.aprsHost, port=self.aprsPort)
                                 AIS.connect()
                             except:
                                 print("An exception occurred")
-                            # send a single message
-                            # LY1BWB-10>APMI06,TCPIP*,qAC,T2CAEAST:@160706z5443.89N\02515.72E-Slava Ukraini!
-                            
-                            # LY3PH-10>APZ32E,WIDE1-1:=5441.06N/02511.91E&DEVEL ESP IG github.com/erstec/APRS-ESP
-                            # LY3PH-10>APZ32E,TCPIP*,qAC,T2CZECH:=5441.06N/02511.91E&DEVEL ESP IG github.com/erstec/APRS-ESP
-                            
-                            # sprintf(strtmp, "%s-%d>APZ32E", config.aprs_mycall, config.aprs_ssid);
-                            # tnc2Raw += ",";
-                            # tnc2Raw += String(config.aprs_path);
-                            # tnc2Raw += ":";
-                            # tnc2Raw += String(loc);
-                            # tnc2Raw += String(config.aprs_comment);
-                            # sprintf(loc, "=%02d%02d.%02dN%c%03d%02d.%02dE%c", 
-                            #   lat_dd, lat_mm, lat_ss, config.aprs_table, lon_dd, lon_mm, lon_ss, config.aprs_symbol);
 
-                            DestCallsign = self.calldict[str(getattr(mp, "from"))]
-                            DestCallsign = DestCallsign + "-M"
+                            DestCallsign = self.calldict[str(getattr(mp, "from"))][0] # take short name
+                            DestCallsign = DestCallsign + "-"
+                            DestCallsign = DestCallsign + format(getattr(mp, "from") & (2**32-1), 'x')[-4:] #last 4 bytes of ID
                             DestCallsign = DestCallsign.ljust(9, ' ')
                             
                             now = datetime.utcnow()
@@ -141,19 +126,7 @@ class MeshtasticMQTT():
                             csec = ((dd1 - cdeg) * 60 - cmin) * 100
                             if deg < 0: cdeg = cdeg * -1
                             
-                            d = cdeg
-                            m = cmin
-                            s = csec
-                            
-                            #m, s = divmod(abs(deg)*3600, 60)
-                            #d, m = divmod(m, 60)
-                            #if deg < 0:
-                            #    d = -d
-                            #d, m = int(d), int(m)
-                            print(d)
-                            print(m)
-                            print(s)
-                            Latitude = "%02d%02d.%02d" % (d, m, s)
+                            Latitude = "%02d%02d.%02d" % (cdeg, cmin, csec)
                             print(Latitude)
                             if deg > 0:
                                 LatitudeNS = 'N'
@@ -169,31 +142,25 @@ class MeshtasticMQTT():
                             csec = ((dd1 - cdeg) * 60 - cmin) * 100
                             if deg < 0: cdeg = cdeg * -1
                             
-                            d = cdeg
-                            m = cmin
-                            s = csec
-                            
-                            #m, s = divmod(abs(deg)*3600, 60)
-                            #d, m = divmod(m, 60)
-                            #if deg < 0:
-                            #    d = -d
-                            #d, m = int(d), int(m)
-                            print(d)
-                            print(m)
-                            print(s)
-                            Longitude = "%03d%02d.%02d" % (d, m, s)
+                            Longitude = "%03d%02d.%02d" % (cdeg, cmin, csec)
                             print(Longitude)
                             if deg > 0:
                                 LongitudeEW = 'E'
                             else:
                                 LongitudeEW = "W"
-                            Comment = 'Slava Ukraini!'
+
+                            Comment = 'MeshTastic ' + self.calldict[str(getattr(mp, "from"))][1] # add long name from DB
+
                             # MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:={Latitude}{LatitudeNS}\{Longitude}{LongitudeEW}S{Comment}\n'
-                            MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}\{Longitude}{LongitudeEW}S{Comment}\n'
+                            MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
                             print('Sending message')
                             print(MESSAGEpacket)
-                            AIS.sendall(MESSAGEpacket)
-                            AIS.close()
+
+                            try:
+                                AIS.sendall(MESSAGEpacket)
+                                AIS.close()
+                            except:
+                                print("An exception occurred")
                     else:
                         print("(CALL DB) Call is NOT in DB, skip APRS upload")
                 #lets also publish the battery directly
@@ -211,17 +178,12 @@ class MeshtasticMQTT():
                 #print(MessageToJson(info))
                 client.publish(self.prefix+str(getattr(mp, "from"))+"/user", MessageToJson(info))
                 
-                print('------------------ INFO STR ------------------')
-                print(info)
-                print(MessageToJson(info))
-                print(info.short_name)
-                print('------------------ INFO END ------------------')
-                
                 print('------------------ CALL DB STR ------------------')
-                self.calldict[str(getattr(mp, "from"))] = info.short_name
+                data_list = [info.short_name, info.long_name]
+                self.calldict[str(getattr(mp, "from"))] = data_list
                 print(self.calldict)
-                json_object = json.dumps(self.calldict, indent = 4)
-                print(json_object)
+                #json_object = json.dumps(self.calldict, indent = 4)
+                #print(json_object)
                 with open("calldb.json", "w") as outfile:
                     json.dump(self.calldict, outfile)
                 print('------------------ CALL DB END ------------------')
