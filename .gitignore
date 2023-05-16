@@ -5,3 +5,5 @@ venv/
 meshtastic_mqtt.egg-info/
 build/
 dist/
+
+/calldb.json
