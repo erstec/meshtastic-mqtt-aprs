@@ -1,0 +1,21 @@
+[Unit]
+Description = MeshTastic MQTT to APRS gateway
+After = network.target
+# Assuming you want to start after network interfaces are made available
+ 
+[Service]
+Type = simple
+Environment = PYTHONUNBUFFERED=1
+# Command to start the service
+ExecStart = python /usr/local/bin/meshtastic-mqtt-aprs
+User = root
+# Group = 
+# Restart when there are errors // always?
+Restart = on-failure
+SyslogIdentifier = meshtastic-mqtt-aprs
+RestartSec = 5
+TimeoutStartSec = infinity
+WorkingDirectory = /home/pi
+ 
+[Install]
+WantedBy = multi-user.target

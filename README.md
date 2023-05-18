@@ -10,19 +10,36 @@ There's a few config definitions at the top of meshtastic-mqtt.py that you'll ne
 # Installation
 
 Clone the repo
-`git clone https://github.com/erstec/meshtastic-mqtt-aprs`
+`git clone https://github.com/erstec/meshtastic-mqtt-aprs.git`
 `cd meshtastic-mqtt-aprs`
 
 Edit the main script and enter your broker and/or traccar host details
 `nano meshtastic_mqtt_aprs/meshtastic_mqtt_aprs.py`
 
 Install to your systen with pip
-`pip install .`
+`sudo apt instal python3-pip`
+`pip --version`
+`sudo pip install .`
 
 Run
-`meshtastic-mqtt`
+`meshtastic-mqtt-aprs`
 
 There are some comments in meshtastic-mqtt.py that detail the tweaks needed to make this run under AppDaemon in Home Assistant.
+
+# Running as a service
+Edit service file according to your needs and copy it to systemd folder:
+sudo cp etc/systemd/system/meshtastic-mqtt-aprs.service /etc/systemd/system/meshtastic-mqtt-aprs.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable meshastic-mqtt-aprs
+sudo systemctl start meshastic-mqtt-aprs
+
+You can then check that your service is running by using the command:
+sudo systemctl | grep running
+sudo systemctl status meshtastic-mqtt-aprs
+
+Logs:
+journalctl -f -u meshtastic-mqtt-aprs
 
 # Copyright notice
 Based on https://github.com/joshpirihi/meshtastic-mqtt
