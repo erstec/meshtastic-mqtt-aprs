@@ -6,6 +6,8 @@ from meshtastic_mqtt_aprs.portnums_pb2 import ENVIRONMENTAL_MEASUREMENT_APP, POS
 import random
 import json
 
+import argparse
+
 import aprslib
 from datetime import datetime
 
@@ -25,24 +27,41 @@ from google.protobuf.json_format import MessageToJson
 #swap for AppDaemon
 #class MeshtasticMQTT(hass.Hass=None):
 class MeshtasticMQTT():
+    parser = argparse.ArgumentParser(description='Meshtastic MQTT APRS', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--mqttServer', default='localhost', help='MQTT Broker Address')
+    parser.add_argument('--mqttPort', default=1883, type=int, help='MQTT Broker Port')
+    parser.add_argument('--mqttUsername', default='', help='MQTT Broker Username')
+    parser.add_argument('--mqttPassword', default='', help='MQTT Broker Password')
 
-    broker = ''
-    username = ''
-    password = ''
-    port = 1883
+    parser.add_argument('aprscall', help='APRS Call')
+    parser.add_argument('aprsHost', help='APRS Host')
+    #parser.add_argument('--aprsPort', default='14580', type=int, help='APRS Port')
+    parser.add_argument('--aprsPort', default='14580', help='APRS Port')
+    parser.add_argument('aprsPass', help='APRS Passcode')
+    parser.add_argument('--aprsTable', default='/', help='APRS Table')
+    parser.add_argument('--aprsSymbol', default='`', help='APRS Symbol')
+
+    args = parser.parse_args()
+    config = vars(args)
+    print(config)
+
+    broker = config['mqttServer']
+    username = config['mqttUsername']
+    password = config['mqttPassword']
+    port = config['mqttPort']
     topic = "msh/2/c/#"
     # generate client ID with pub prefix randomly
     client_id = f'meshtastic-mqtt-{random.randint(0, 100)}'
     
     prefix = "meshtastic/"
 
-    aprsCall = ''
-    aprsHost = ''
-    aprsPort = '14580'
-    aprsPass = ''
-    aprsTable = '/'
-    aprsSymbol = '`'
-    
+    aprsCall = config['aprscall']
+    aprsHost = config['aprsHost']
+    aprsPort = config['aprsPort']
+    aprsPass = config['aprsPass']
+    aprsTable = config['aprsTable']
+    aprsSymbol = config['aprsSymbol']
+
     # Id -> Callsign DB
     calldict = {
     }

@@ -5,7 +5,7 @@ APRS Callsign are obtained from Short Name, dash '-' and last four hex digits of
 
 ## DO NOT USE WITH aprs.fi, as it is prohibited to push non HAM data to it!
 
-There's a few config definitions at the top of meshtastic-mqtt.py that you'll need to change for your MQTT and APRS servers.
+Use `meshtastic-mqtt-aprs --help` to see the options.
 
 # Installation
 
@@ -22,7 +22,8 @@ Install to your systen with pip
 `sudo pip install .`
 
 Run
-`meshtastic-mqtt-aprs`
+`meshtastic-mqtt-aprs --help` and see the options required to run the script.
+Ex. `meshtastic-mqtt-aprs --mqttBroker ADDRESSOFBROKER APRSCALL APRSHOST APRSPASS`
 
 There are some comments in meshtastic-mqtt.py that detail the tweaks needed to make this run under AppDaemon in Home Assistant.
 
