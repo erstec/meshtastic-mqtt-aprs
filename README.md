@@ -5,24 +5,42 @@ APRS Callsign are obtained from Short Name, dash '-' and last four hex digits of
 
 ## DO NOT USE WITH aprs.fi, as it is prohibited to push non HAM data to it!
 
-There's a few config definitions at the top of meshtastic-mqtt.py that you'll need to change for your MQTT and APRS servers.
+Use `meshtastic-mqtt-aprs --help` to see the options.
 
 # Installation
 
 Clone the repo
-`git clone https://github.com/erstec/meshtastic-mqtt-aprs`
+`git clone https://github.com/erstec/meshtastic-mqtt-aprs.git`
 `cd meshtastic-mqtt-aprs`
 
 Edit the main script and enter your broker and/or traccar host details
-`nano meshtastic_mqtt/meshtastic_mqtt.py`
+`nano meshtastic_mqtt_aprs/meshtastic_mqtt_aprs.py`
 
 Install to your systen with pip
-`pip install .`
+`sudo apt instal python3-pip`
+`pip --version`
+`sudo pip install .`
 
 Run
-`meshtastic-mqtt`
+`meshtastic-mqtt-aprs --help` and see the options required to run the script.
+Ex. `meshtastic-mqtt-aprs --mqttBroker ADDRESSOFBROKER APRSCALL APRSHOST APRSPASS`
 
 There are some comments in meshtastic-mqtt.py that detail the tweaks needed to make this run under AppDaemon in Home Assistant.
+
+# Running as a service
+Edit service file according to your needs and copy it to systemd folder:
+sudo cp etc/systemd/system/meshtastic-mqtt-aprs.service /etc/systemd/system/meshtastic-mqtt-aprs.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable meshastic-mqtt-aprs
+sudo systemctl start meshastic-mqtt-aprs
+
+You can then check that your service is running by using the command:
+sudo systemctl | grep running
+sudo systemctl status meshtastic-mqtt-aprs
+
+Logs:
+journalctl -f -u meshtastic-mqtt-aprs
 
 # Copyright notice
 Based on https://github.com/joshpirihi/meshtastic-mqtt
