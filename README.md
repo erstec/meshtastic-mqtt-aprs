@@ -1,5 +1,5 @@
 # meshtastic-mqtt-aprs
-A python script to translate Meshtastic MQTT location messages into a plain format that other systems can easily understand. Currently takes position data and submits it to a private MQTT instance and forward to private APRS-IS, also publishes user info packets, battery levels and environmental plugin temperatures and humidity readings to mqtt as raw values.
+A Python script to translate Meshtastic MQTT packets into a plain format that other systems can easily understand. Currently takes position data and submits it to a private MQTT broker and then to private APRS-IS instance, also publishes user info packets, battery levels and environmental plugin temperatures and humidity readings to mqtt as raw values.
 
 APRS Callsign are obtained from Short Name, dash '-' and last four hex digits of node id.
 
