@@ -10,7 +10,7 @@ FROM python:3.9-alpine
 WORKDIR /opt/meshtastic-mqtt-aprs
 
 RUN apk add --no-cache git \
- && git clone -b reworking_for_aprs https://github.com/erstec/meshtastic-mqtt-aprs.git . \
+ && git clone -b main https://github.com/erstec/meshtastic-mqtt-aprs.git . \
  && pip3 install . \
  && cd /tmp && rm -rf /opt/meshtastic-mqtt-aprs \
  && apk del git
