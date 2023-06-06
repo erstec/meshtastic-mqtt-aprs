@@ -1,5 +1,0 @@
-protobuf<=3.20.3
-pypubsub>=4.0.3
-requests
-paho-mqtt
-aprslib
