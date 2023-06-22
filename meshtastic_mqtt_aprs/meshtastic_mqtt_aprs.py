@@ -100,6 +100,7 @@ class MeshtasticMQTT():
             "air_util_tx": 0,
             "rssi": 0,
             "snr": 0,
+            "hardware": "",
         }
     print(current_data)
     
@@ -123,7 +124,9 @@ class MeshtasticMQTT():
     def subscribe(self, client: mqtt_client):
         def on_message(client, userdata, msg):
             #print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic") // obsolete
-            print(f"Received `{msg.payload}` from `{msg.topic}` topic")
+            # print(f"Received `{msg.payload}` from `{msg.topic}` topic")
+            print("------------------")
+            print(f"Received msg from `{msg.topic}` topic")
 
             is_it_json = False
 
@@ -131,8 +134,9 @@ class MeshtasticMQTT():
             try:
                 se = mqtt_pb2.ServiceEnvelope()
                 se.ParseFromString(msg.payload)
-                print(f"Received2o: `{se}`")
                 mp = se.packet
+                # print(f"Received2o: `{se}`")
+                print(f"Received2o / '{mp.decoded.portnum}'")
                 is_it_json = False
             except:
                 try:
@@ -140,7 +144,7 @@ class MeshtasticMQTT():
                     print(f"Received2n: `{json_unpacked}`")
 
                     payload = json_unpacked["payload"]
-                    print(payload)
+                    # print(payload)
 
                     from_node = str(json_unpacked["from"])
                     to_node = str(json_unpacked["to"])
@@ -151,6 +155,7 @@ class MeshtasticMQTT():
 
             if not is_it_json:
                 if mp.decoded.portnum == portnums_pb2.POSITION_APP:
+                    print("OLD Position/Signal Quality received")
                     snr = str(mp.rx_snr)
                     if mp.rx_snr == 0:
                         if self.current_data[str(getattr(mp, "from"))]["snr"] != 0:
@@ -165,7 +170,6 @@ class MeshtasticMQTT():
                     else:
                         self.current_data[str(getattr(mp, "from"))]["rssi"] = rssi
                     
-                    print("Position/Signal Quality received")
                     print("RSSI: " + rssi + " SNR: " + snr)
                     
                     link_quality = {
@@ -217,7 +221,7 @@ class MeshtasticMQTT():
                                 TimeStamp = now.strftime("%d%H%M")
                                 
                                 deg = owntracks_payload["lat"]
-                                print(deg)
+                                # print(deg)
                                 
                                 dd1 = abs(float(deg))
                                 cdeg = int(dd1)
@@ -226,14 +230,14 @@ class MeshtasticMQTT():
                                 if deg < 0: cdeg = cdeg * -1
                                 
                                 Latitude = "%02d%02d.%02d" % (cdeg, cmin, csec)
-                                print(Latitude)
+                                # print(Latitude)
                                 if deg > 0:
                                     LatitudeNS = 'N'
                                 else:
                                     LatitudeNS = 'S'
 
                                 deg = owntracks_payload["lon"]
-                                print(deg)
+                                # print(deg)
                                 
                                 dd1 = abs(float(deg))
                                 cdeg = int(dd1)
@@ -242,7 +246,7 @@ class MeshtasticMQTT():
                                 if deg < 0: cdeg = cdeg * -1
                                 
                                 Longitude = "%03d%02d.%02d" % (cdeg, cmin, csec)
-                                print(Longitude)
+                                # print(Longitude)
                                 if deg > 0:
                                     LongitudeEW = 'E'
                                 else:
@@ -269,18 +273,20 @@ class MeshtasticMQTT():
                                 #if self.current_data[from_node]["battery_level"] != 0:
                                 Comment = Comment + ' Bat: ' + f'{self.current_data[from_node]["battery_level"]:.0f}' + '%'
                                 #if self.current_data[from_node]["voltage"] != 0:
-                                Comment = Comment + ' ' + f'{self.current_data[from_node]["voltage"]:.1f}' + 'V'
+                                Comment = Comment + ' ' + f'{self.current_data[from_node]["voltage"]:.2f}' + 'V'
                                 if self.current_data[from_node]["current"] != 0:
                                     Comment = Comment + ' ' + f'{self.current_data[from_node]["current"]:.1f}' + 'A'
                                 if self.current_data[from_node]["channel_utilization"] != 0:
                                     Comment = Comment + ' ChUtil: ' + f'{self.current_data[from_node]["channel_utilization"]:.1f}' + '%'
                                 if self.current_data[from_node]["air_util_tx"] != 0:
                                     Comment = Comment + ' AirUtil: ' + f'{self.current_data[from_node]["air_util_tx"]:.1f}' + '%'
+                                if self.current_data[from_node]["hardware"] != "":
+                                    Comment = Comment + ' ' + str(self.current_data[from_node]["hardware"])
                                 
 
                                 # MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:={Latitude}{LatitudeNS}\{Longitude}{LongitudeEW}S{Comment}\n'
                                 MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
-                                print('Sending message')
+                                print('Sending APRS message')
                                 print(MESSAGEpacket)
 
                                 self.current_data[from_node]["lat"] = owntracks_payload["lat"]
@@ -364,6 +370,85 @@ class MeshtasticMQTT():
                     
                     self.current_data[from_node]["shortName"] = payload["shortname"]
                     self.current_data[from_node]["longName"] = payload["longname"]
+
+                    if "hardware" in payload:
+                        # self.current_data[from_node]["hardware"] = payload["hardware"]
+                        if payload["hardware"] == 0:
+                            self.current_data[from_node]["hardware"] = "UNSET"
+                        elif payload["hardware"] == 1:
+                            self.current_data[from_node]["hardware"] = "TLORA_V2"
+                        elif payload["hardware"] == 2:
+                            self.current_data[from_node]["hardware"] = "TLORA_V1"
+                        elif payload["hardware"] == 3:
+                            self.current_data[from_node]["hardware"] = "TLORA_V2_1_1P6"
+                        elif payload["hardware"] == 4:
+                            self.current_data[from_node]["hardware"] = "TBEAM"
+                        elif payload["hardware"] == 5:
+                            self.current_data[from_node]["hardware"] = "HELTEC_V2_0"
+                        elif payload["hardware"] == 6:
+                            self.current_data[from_node]["hardware"] = "TBEAM_V0P7"
+                        elif payload["hardware"] == 7:
+                            self.current_data[from_node]["hardware"] = "T_ECHO"
+                        elif payload["hardware"] == 8:
+                            self.current_data[from_node]["hardware"] = "TLORA_V1_1P3"
+                        elif payload["hardware"] == 9:
+                            self.current_data[from_node]["hardware"] = "RAK4631"
+                        elif payload["hardware"] == 10:
+                            self.current_data[from_node]["hardware"] = "HELTEC_V2_1"
+                        elif payload["hardware"] == 11:
+                            self.current_data[from_node]["hardware"] = "HELTEC_V1"
+                        elif payload["hardware"] == 12:
+                            self.current_data[from_node]["hardware"] = "LILYGO_TBEAM_S3_CORE"
+                        elif payload["hardware"] == 13:
+                            self.current_data[from_node]["hardware"] = "RAK11200"
+                        elif payload["hardware"] == 14:
+                            self.current_data[from_node]["hardware"] = "NANO_G1"
+                        elif payload["hardware"] == 15:
+                            self.current_data[from_node]["hardware"] = "TLORA_V2_1_1P8"
+                        elif payload["hardware"] == 16:
+                            self.current_data[from_node]["hardware"] = "TLORA_T3_S3"
+                        elif payload["hardware"] == 17:
+                            self.current_data[from_node]["hardware"] = "NANO_G1_EXPLORER"
+                        elif payload["hardware"] == 25:
+                            self.current_data[from_node]["hardware"] = "STATION_G1"
+                        elif payload["hardware"] == 26:
+                            self.current_data[from_node]["hardware"] = "RAK11310"
+                        elif payload["hardware"] == 32:
+                            self.current_data[from_node]["hardware"] = "LORA_RELAY_V1"
+                        elif payload["hardware"] == 33:
+                            self.current_data[from_node]["hardware"] = "NRF52840DK"
+                        elif payload["hardware"] == 34:
+                            self.current_data[from_node]["hardware"] = "PPR"
+                        elif payload["hardware"] == 35:
+                            self.current_data[from_node]["hardware"] = "GENIEBLOCKS"
+                        elif payload["hardware"] == 36:
+                            self.current_data[from_node]["hardware"] = "NRF52_UNKNOWN"
+                        elif payload["hardware"] == 37:
+                            self.current_data[from_node]["hardware"] = "PORTDUINO"
+                        elif payload["hardware"] == 38:
+                            self.current_data[from_node]["hardware"] = "ANDROID_SIM"
+                        elif payload["hardware"] == 39:
+                            self.current_data[from_node]["hardware"] = "DIY_V1"
+                        elif payload["hardware"] == 40:
+                            self.current_data[from_node]["hardware"] = "NRF52840_PCA10059"
+                        elif payload["hardware"] == 41:
+                            self.current_data[from_node]["hardware"] = "DR_DEV"
+                        elif payload["hardware"] == 42:
+                            self.current_data[from_node]["hardware"] = "M5STACK"
+                        elif payload["hardware"] == 43:
+                            self.current_data[from_node]["hardware"] = "HELTEC_V3"
+                        elif payload["hardware"] == 44:
+                            self.current_data[from_node]["hardware"] = "HELTEC_WSL_V3"
+                        elif payload["hardware"] == 45:
+                            self.current_data[from_node]["hardware"] = "BETAFPV_2400_TX"
+                        elif payload["hardware"] == 46:
+                            self.current_data[from_node]["hardware"] = "BETAFPV_900_NANO_TX"
+                        elif payload["hardware"] == 47:
+                            self.current_data[from_node]["hardware"] = "RPI_PICO"
+                        elif payload["hardware"] == 255:
+                            self.current_data[from_node]["hardware"] = "PRIVATE_HW"
+                        else:
+                            self.current_data[from_node]["hardware"] = "UNKNOWN"
 
                     print('------------------ CALL DB STR ------------------')
                     data_list = [payload["shortname"], payload["longname"]]
