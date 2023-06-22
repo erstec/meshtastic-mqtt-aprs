@@ -98,7 +98,7 @@ class MeshtasticMQTT():
             "air_util_tx": 0,
             "rssi": 0,
             "snr": 0,
-            "hardware": '',
+            "hardware": "",
         }
     print(current_data)
     
@@ -251,7 +251,7 @@ class MeshtasticMQTT():
                                     LongitudeEW = "W"
 
                                 Comment = 'MeshTastic '
-                                if self.current_data[from_node]["hardware"]:
+                                if self.current_data[from_node]["hardware"] != "":
                                     Comment = Comment + ' ' + str(self.current_data[from_node]["hardware"])
                                 Comment = Comment + ' ' + self.calldict[from_node][1]
                                 if self.current_data[from_node]["rssi"] != 0:
