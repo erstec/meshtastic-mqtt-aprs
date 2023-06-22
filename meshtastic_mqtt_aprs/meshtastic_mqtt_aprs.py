@@ -84,8 +84,6 @@ class MeshtasticMQTT():
     print("Loading CurrentData...")
     for key in calldict:
         current_data[key] = {
-            "shortName": calldict[key][0],
-            "longName": calldict[key][1],
             "latitude_i": 0,
             "longitude_i": 0,
             "altitude": 0,
@@ -377,9 +375,6 @@ class MeshtasticMQTT():
                     if not from_node in self.current_data:
                         self.current_data[from_node] = {}
                     
-                    self.current_data[from_node]["shortName"] = payload["shortname"]
-                    self.current_data[from_node]["longName"] = payload["longname"]
-
                     if "hardware" in payload:
                         # self.current_data[from_node]["hardware"] = payload["hardware"]
                         if payload["hardware"] == 0:
