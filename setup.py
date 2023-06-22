@@ -28,7 +28,7 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     #include_package_data=True,
-    install_requires=["protobuf<=3.20.3", "pypubsub>=4.0.3", "requests", "paho-mqtt", "aprslib"],
+    install_requires=["protobuf<=3.20.3", "pypubsub>=4.0.3", "paho-mqtt", "aprslib"],
     python_requires='>=3.6',
     packages=["meshtastic_mqtt_aprs"],
     entry_points={
