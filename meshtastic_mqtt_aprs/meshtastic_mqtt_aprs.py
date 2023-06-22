@@ -48,7 +48,12 @@ class MeshtasticMQTT():
     username = config['mqttUsername']
     password = config['mqttPassword']
     port = config['mqttPort']
-    topic = "msh/2/c/#"
+    # topic = "msh/2/c/#"
+    # topic = "msh/2/json/#"
+    # QoS = 0 - At most once (default) - best effort delivery
+    # QoS = 1 - At least once - guaranteed delivery
+    # QoS = 2 - Exactly once - assured delivery
+    topics = [("msh/2/json/#", 1), ("msh/2/c/#", 0)]
     # generate client ID with pub prefix randomly
     client_id = f'meshtastic-mqtt-{random.randint(0, 100)}'
     
@@ -81,15 +86,20 @@ class MeshtasticMQTT():
         current_data[key] = {
             "shortName": calldict[key][0],
             "longName": calldict[key][1],
-            "lat": 0,
-            "lon": 0,
-            "alt": 0,
-            "batteryVoltage": 0,
+            "latitude_i": 0,
+            "longitude_i": 0,
+            "altitude": 0,
+            "battery_level": 0,
+            "voltage": 0,
+            "barometric_pressure": 0,
+            "current": 0,
+            "gas_resistance": 0,
+            "relative_humidity": 0,
             "temperature": 0,
-            "humidity": 0,
-            "pressure": 0,
-            "lastPacketRSSI": 0,
-            "lastPacketSNR": 0,
+            "channel_utilization": 0,
+            "air_util_tx": 0,
+            "rssi": 0,
+            "snr": 0,
         }
     print(current_data)
     
@@ -113,178 +123,268 @@ class MeshtasticMQTT():
     def subscribe(self, client: mqtt_client):
         def on_message(client, userdata, msg):
             #print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic") // obsolete
-            # print(f"Received `{msg.payload}` from `{msg.topic}` topic")
-            se = mqtt_pb2.ServiceEnvelope()
-            se.ParseFromString(msg.payload)
+            print(f"Received `{msg.payload}` from `{msg.topic}` topic")
 
-            print(f"Received2: `{se}`")
-            mp = se.packet
+            is_it_json = False
 
-            if mp.decoded.portnum == portnums_pb2.POSITION_APP:
-                pos = mesh_pb2.Position()
-                pos.ParseFromString(mp.decoded.payload)
-                print(getattr(mp, "from"))
-                print(f"->'{pos}'")
-                owntracks_payload = {
-                    "_type": "location",
-                    "lat": pos.latitude_i * 1e-7,
-                    "lon": pos.longitude_i * 1e-7,
-                    "tst": pos.time,
-                    "batt": pos.battery_level,
-                    "alt": pos.altitude
-                }
-                if owntracks_payload["lat"] != 0 and owntracks_payload["lon"] != 0:
-                    #client.publish("owntracks/"+str(getattr(mp, "from"))+"/meshtastic_node", json.dumps(owntracks_payload))
-                    client.publish(self.prefix+str(getattr(mp, "from"))+"/position", json.dumps(owntracks_payload))
-                    #deal with APRS
-                    print(self.calldict)
-                    if str(getattr(mp, "from")) in self.calldict:
-                        print("(CALL DB) Call is in DB, uploading to APRS")
-                        if len(self.aprsHost) > 0 and len(self.aprsPort) > 0 and len(self.aprsHost) > 0:
-                            print('------------------------ APRS sending... ------------------------ ')
-                            try:
-                                AIS = aprslib.IS(self.aprsCall, passwd=self.aprsPass, host=self.aprsHost, port=self.aprsPort)
-                                AIS.connect()
-                            except:
-                                print("An exception occurred")
+            # Try Parse
+            try:
+                se = mqtt_pb2.ServiceEnvelope()
+                se.ParseFromString(msg.payload)
+                print(f"Received2o: `{se}`")
+                mp = se.packet
+                is_it_json = False
+            except:
+                try:
+                    json_unpacked = json.loads(msg.payload)
+                    print(f"Received2n: `{json_unpacked}`")
 
-                            DestCallsign = self.calldict[str(getattr(mp, "from"))][0] # take short name
-                            DestCallsign = DestCallsign + "-"
-                            DestCallsign = DestCallsign + format(getattr(mp, "from") & (2**32-1), 'x')[-4:] #last 4 bytes of ID
-                            DestCallsign = DestCallsign.ljust(9, ' ')
-                            
-                            now = datetime.utcnow()
-                            TimeStamp = now.strftime("%d%H%M")
-                            
-                            deg = owntracks_payload["lat"]
-                            print(deg)
-                            
-                            dd1 = abs(float(deg))
-                            cdeg = int(dd1)
-                            cmin = int((dd1 - cdeg) * 60)
-                            csec = ((dd1 - cdeg) * 60 - cmin) * 100
-                            if deg < 0: cdeg = cdeg * -1
-                            
-                            Latitude = "%02d%02d.%02d" % (cdeg, cmin, csec)
-                            print(Latitude)
-                            if deg > 0:
-                                LatitudeNS = 'N'
-                            else:
-                                LatitudeNS = 'S'
+                    payload = json_unpacked["payload"]
+                    print(payload)
 
-                            deg = owntracks_payload["lon"]
-                            print(deg)
-                            
-                            dd1 = abs(float(deg))
-                            cdeg = int(dd1)
-                            cmin = int((dd1 - cdeg) * 60)
-                            csec = ((dd1 - cdeg) * 60 - cmin) * 100
-                            if deg < 0: cdeg = cdeg * -1
-                            
-                            Longitude = "%03d%02d.%02d" % (cdeg, cmin, csec)
-                            print(Longitude)
-                            if deg > 0:
-                                LongitudeEW = 'E'
-                            else:
-                                LongitudeEW = "W"
+                    from_node = str(json_unpacked["from"])
+                    to_node = str(json_unpacked["to"])
 
-                            snr = str(mp.rx_snr)
-                            if mp.rx_snr == 0:
-                                if self.current_data[str(getattr(mp, "from"))]["lastPacketSNR"] != 0:
-                                    snr = str(self.current_data[str(getattr(mp, "from"))]["lastPacketSNR"])
-                                else:
-                                    snr = 'n/a'
-                            rssi = str(mp.priority)
-                            if mp.priority == 0:
-                                if self.current_data[str(getattr(mp, "from"))]["lastPacketRSSI"] != 0:
-                                    rssi = str(self.current_data[str(getattr(mp, "from"))]["lastPacketRSSI"])
-                                else:
-                                    rssi = 'n/a'
-                            Comment = 'MeshTastic ' + self.calldict[str(getattr(mp, "from"))][1] + ' SNR: ' + snr + ' dB RSSI: ' + rssi + ' dBm' # add long name from DB
-                            if self.current_data[str(getattr(mp, "from"))]["alt"] != 0:
-                                Comment = Comment + ' ' + f'{self.current_data[str(getattr(mp, "from"))]["alt"]:.1f}' + 'm'
-                            if self.current_data[str(getattr(mp, "from"))]["batteryVoltage"] != 0:
-                                Comment = Comment + ' ' + f'{self.current_data[str(getattr(mp, "from"))]["batteryVoltage"]:.2f}' + 'V'
-                            if self.current_data[str(getattr(mp, "from"))]["temperature"] != 0:
-                                Comment = Comment + ' ' + f'{self.current_data[str(getattr(mp, "from"))]["temperature"] / 1e22:.1f}' + 'C'
-                            if self.current_data[str(getattr(mp, "from"))]["humidity"] != 0:
-                                Comment = Comment + ' ' + f'{self.current_data[str(getattr(mp, "from"))]["humidity"]:.1f}' + '%'
-                            if self.current_data[str(getattr(mp, "from"))]["pressure"] != 0:
-                                Comment = Comment + ' ' + f'{self.current_data[str(getattr(mp, "from"))]["pressure"]:.2f}' + 'hPa'
+                    is_it_json = True
+                except:
+                    print("Received2x: `Failed to parse`")
 
-                            # MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:={Latitude}{LatitudeNS}\{Longitude}{LongitudeEW}S{Comment}\n'
-                            MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
-                            print('Sending message')
-                            print(MESSAGEpacket)
-
-                            self.current_data[str(getattr(mp, "from"))]["lat"] = owntracks_payload["lat"]
-                            self.current_data[str(getattr(mp, "from"))]["lon"] = owntracks_payload["lon"]
-                            if owntracks_payload["alt"] != 0:
-                                self.current_data[str(getattr(mp, "from"))]["alt"] = owntracks_payload["alt"]
-                            if snr != 'n/a':
-                                self.current_data[str(getattr(mp, "from"))]["lastPacketSNR"] = snr
-                            if rssi != 'n/a':
-                                self.current_data[str(getattr(mp, "from"))]["lastPacketRSSI"] = rssi
-
-                            try:
-                                AIS.sendall(MESSAGEpacket)
-                                AIS.close()
-                            except:
-                                print("APRS SEND: Exception occurred")
+            if not is_it_json:
+                if mp.decoded.portnum == portnums_pb2.POSITION_APP:
+                    snr = str(mp.rx_snr)
+                    if mp.rx_snr == 0:
+                        if self.current_data[str(getattr(mp, "from"))]["snr"] != 0:
+                            snr = str(self.current_data[str(getattr(mp, "from"))]["snr"])
                     else:
-                        print("(CALL DB) Call is NOT in DB, skip APRS upload")
-                #lets also publish the battery directly
-                if pos.battery_level > 0:
-                    client.publish(self.prefix+str(getattr(mp, "from"))+"/battery", pos.battery_level)
-                    if str(getattr(mp, "from")) in self.current_data:
-                        self.current_data[str(getattr(mp, "from"))]["batteryVoltage"] = pos.battery_level
-            elif mp.decoded.portnum == ENVIRONMENTAL_MEASUREMENT_APP:
-                env = environmental_measurement_pb2.EnvironmentalMeasurement()
-                env.ParseFromString(mp.decoded.payload)
-                print(f"->'{env}'")
-                if env.barometric_pressure > 0:
-                    client.publish(self.prefix+str(getattr(mp, "from"))+"/pressure", env.pressure)
-                    if str(getattr(mp, "from")) in self.current_data:
-                        self.current_data[str(getattr(mp, "from"))]["pressure"] = env.pressure
-                if env.temperature > 0:
-                    client.publish(self.prefix+str(getattr(mp, "from"))+"/temperature", env.temperature)
-                    if str(getattr(mp, "from")) in self.current_data:
-                        self.current_data[str(getattr(mp, "from"))]["temperature"] = env.temperature
-                if env.relative_humidity > 0:                    
-                    client.publish(self.prefix+str(getattr(mp, "from"))+"/relative_humidity", env.relative_humidity)
-                    if str(getattr(mp, "from")) in self.current_data:
-                        self.current_data[str(getattr(mp, "from"))]["humidity"] = env.relative_humidity
-            elif mp.decoded.portnum == portnums_pb2.NODEINFO_APP:
-                info = mesh_pb2.User()
-                info.ParseFromString(mp.decoded.payload)
-                print(f"->'{info}'")
-                print(f"--> '{MessageToJson(info)}'")
-                client.publish(self.prefix+str(getattr(mp, "from"))+"/user", MessageToJson(info))
+                        self.current_data[str(getattr(mp, "from"))]["snr"] = snr
 
-                if not str(getattr(mp, "from")) in self.current_data:
-                    self.current_data[str(getattr(mp, "from"))] = {}
-                
-                self.current_data[str(getattr(mp, "from"))]["shortName"] = info.short_name
-                self.current_data[str(getattr(mp, "from"))]["longName"] = info.long_name
-                
-                print('------------------ CALL DB STR ------------------')
-                data_list = [info.short_name, info.long_name]
-                self.calldict[str(getattr(mp, "from"))] = data_list
-                print(self.calldict)
-                #json_object = json.dumps(self.calldict, indent = 4)
-                #print(json_object)
-                with open("calldb.json", "w") as outfile:
-                    json.dump(self.calldict, outfile)
-                print('------------------ CALL DB END ------------------')
-            elif mp.decoded.portnum == portnums_pb2.TEXT_MESSAGE_APP:
-                text = {
-                    "message": mp.decoded.payload.decode("utf-8"),
-                    "from": getattr(mp, "from"),
-                    "to": mp.to
-                }
-                client.publish(self.prefix+str(getattr(mp, "from"))+"/text_message", json.dumps(text))
+                    rssi = str(mp.priority)
+                    if mp.priority == 0:
+                        if self.current_data[str(getattr(mp, "from"))]["rssi"] != 0:
+                            rssi = str(self.current_data[str(getattr(mp, "from"))]["rssi"])
+                    else:
+                        self.current_data[str(getattr(mp, "from"))]["rssi"] = rssi
+                    
+                    print("Position/Signal Quality received")
+                    print("RSSI: " + rssi + " SNR: " + snr)
+                    
+                    link_quality = {
+                        "rssi": rssi,
+                        "snr": snr
+                    }
+                    client.publish(self.prefix + str(getattr(mp, "from")) + "/link_quality", json.dumps(link_quality))
 
-        client.subscribe(self.topic)
+            elif is_it_json:
+                if json_unpacked["type"] == "position":
+                    print("Position received")
+                    owntracks_payload = {
+                        "_type": "location",
+                        "lat": payload["latitude_i"] * 1e-7,
+                        "lon": payload["longitude_i"] * 1e-7,
+                    }
+                    if "altitude" in payload:
+                        owntracks_payload["alt"] = payload["altitude"]
+                    if "time" in payload:
+                        owntracks_payload["tst"] = payload["time"]
+
+                    if owntracks_payload["lat"] != 0 and owntracks_payload["lon"] != 0:
+                        #client.publish("owntracks/"+str(getattr(mp, "from"))+"/meshtastic_node", json.dumps(owntracks_payload))
+                        client.publish(self.prefix + from_node + "/position", json.dumps(owntracks_payload))
+                        
+                        #deal with APRS
+                        print(self.calldict)
+                        if from_node in self.calldict:
+                            print("(CALL DB) Call is in DB, uploading to APRS")
+                            if len(self.aprsHost) > 0 and len(self.aprsPort) > 0 and len(self.aprsHost) > 0:
+                                print('------------------------ APRS sending... ------------------------ ')
+                                try:
+                                    AIS = aprslib.IS(self.aprsCall, passwd=self.aprsPass, host=self.aprsHost, port=self.aprsPort)
+                                    AIS.connect()
+                                except:
+                                    print("An exception occurred")                                    
+
+                                DestCallsign = self.calldict[from_node][0] # take short name
+                                DestCallsign = DestCallsign + "-"
+                                DestCallsign = DestCallsign + format(json_unpacked["from"] & (2**32-1), 'x')[-4:] #last 4 bytes of ID
+                                DestCallsign = DestCallsign.ljust(9, ' ')
+                                
+                                # if "tst" in owntracks_payload:
+                                    #  now = owntracks_payload["tst"]
+                                # else:
+                                    # now = datetime.utcnow()
+
+                                now = datetime.utcnow()
+                                TimeStamp = now.strftime("%d%H%M")
+                                
+                                deg = owntracks_payload["lat"]
+                                print(deg)
+                                
+                                dd1 = abs(float(deg))
+                                cdeg = int(dd1)
+                                cmin = int((dd1 - cdeg) * 60)
+                                csec = ((dd1 - cdeg) * 60 - cmin) * 100
+                                if deg < 0: cdeg = cdeg * -1
+                                
+                                Latitude = "%02d%02d.%02d" % (cdeg, cmin, csec)
+                                print(Latitude)
+                                if deg > 0:
+                                    LatitudeNS = 'N'
+                                else:
+                                    LatitudeNS = 'S'
+
+                                deg = owntracks_payload["lon"]
+                                print(deg)
+                                
+                                dd1 = abs(float(deg))
+                                cdeg = int(dd1)
+                                cmin = int((dd1 - cdeg) * 60)
+                                csec = ((dd1 - cdeg) * 60 - cmin) * 100
+                                if deg < 0: cdeg = cdeg * -1
+                                
+                                Longitude = "%03d%02d.%02d" % (cdeg, cmin, csec)
+                                print(Longitude)
+                                if deg > 0:
+                                    LongitudeEW = 'E'
+                                else:
+                                    LongitudeEW = "W"
+
+                                Comment = 'MeshTastic ' + self.calldict[from_node][1]
+                                if self.current_data[from_node]["rssi"] != 0:
+                                    Comment = Comment + ' RSSI: ' + str(self.current_data[from_node]["rssi"]) + ' dBm'
+                                if self.current_data[from_node]["snr"] != 0:
+                                    Comment = Comment + ' SNR: ' + str(self.current_data[from_node]["snr"]) + ' dB'
+                                if "alt" in owntracks_payload:
+                                    Comment = Comment + ' Alt: ' + str(owntracks_payload["alt"]) + 'm'
+                                else:                                    
+                                    if self.current_data[from_node]["altitude"] != 0:
+                                        Comment = Comment + ' Alt: ' + f'{self.current_data[from_node]["altitude"]:.1f}' + 'm'
+                                if self.current_data[from_node]["temperature"] != 0:
+                                    Comment = Comment + ' ' + f'{self.current_data[from_node]["temperature"]:.1f}' + 'C'
+                                if self.current_data[from_node]["relative_humidity"] != 0:
+                                    Comment = Comment + ' RH: ' + f'{self.current_data[from_node]["relative_humidity"]:.1f}' + '%'
+                                if self.current_data[from_node]["barometric_pressure"] != 0:
+                                    Comment = Comment + ' ' + f'{self.current_data[from_node]["barometric_pressure"]:.1f}' + 'hPa'
+                                if self.current_data[from_node]["gas_resistance"] != 0:
+                                    Comment = Comment + ' GasR: ' + f'{self.current_data[from_node]["gas_resistance"]:.1f}' + 'Ohm'
+                                #if self.current_data[from_node]["battery_level"] != 0:
+                                Comment = Comment + ' Bat: ' + f'{self.current_data[from_node]["battery_level"]:.0f}' + '%'
+                                #if self.current_data[from_node]["voltage"] != 0:
+                                Comment = Comment + ' ' + f'{self.current_data[from_node]["voltage"]:.1f}' + 'V'
+                                if self.current_data[from_node]["current"] != 0:
+                                    Comment = Comment + ' ' + f'{self.current_data[from_node]["current"]:.1f}' + 'A'
+                                if self.current_data[from_node]["channel_utilization"] != 0:
+                                    Comment = Comment + ' ChUtil: ' + f'{self.current_data[from_node]["channel_utilization"]:.1f}' + '%'
+                                if self.current_data[from_node]["air_util_tx"] != 0:
+                                    Comment = Comment + ' AirUtil: ' + f'{self.current_data[from_node]["air_util_tx"]:.1f}' + '%'
+                                
+
+                                # MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:={Latitude}{LatitudeNS}\{Longitude}{LongitudeEW}S{Comment}\n'
+                                MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
+                                print('Sending message')
+                                print(MESSAGEpacket)
+
+                                self.current_data[from_node]["lat"] = owntracks_payload["lat"]
+                                self.current_data[from_node]["lon"] = owntracks_payload["lon"]
+                                if "alt" in owntracks_payload:
+                                    if owntracks_payload["alt"] != 0:
+                                        self.current_data[from_node]["alt"] = owntracks_payload["alt"]
+
+                                try:
+                                    AIS.sendall(MESSAGEpacket)
+                                    AIS.close()
+                                except:
+                                    print("APRS SEND: Exception occurred")
+                        else:
+                            print("(CALL DB) Call is NOT in DB, skip APRS upload")
+                
+                elif json_unpacked["type"] == "telemetry":                
+                    print("Telemetry received")
+
+                    if "voltage" in payload:
+                        if payload["voltage"] > 0:
+                            client.publish(self.prefix + from_node + "/voltage", payload["voltage"])
+                            if from_node in self.current_data:
+                                self.current_data[from_node]["voltage"] = payload["voltage"]
+                    
+                    if "air_util_tx" in payload:
+                        if payload["air_util_tx"] > 0:
+                            client.publish(self.prefix + from_node + "/air_util_tx", payload["air_util_tx"])
+                            if from_node in self.current_data:
+                                self.current_data[from_node]["air_util_tx"] = payload["air_util_tx"]
+
+                    if "channel_utilization" in payload:
+                        if payload["channel_utilization"] > 0:
+                            client.publish(self.prefix + from_node + "/channel_utilization", payload["channel_utilization"])
+                            if from_node in self.current_data:
+                                self.current_data[from_node]["channel_utilization"] = payload["channel_utilization"]
+                    
+                    if "battery_level" in payload:
+                        if payload["battery_level"] > 0:
+                            client.publish(self.prefix + from_node + "/battery_level", payload["battery_level"])
+                            if from_node in self.current_data:
+                                self.current_data[from_node]["battery_level"] = payload["battery_level"]
+                    
+                    if "barometric_pressure" in payload:
+                        if payload["barometric_pressure"] > 0:
+                            client.publish(self.prefix + from_node + "/barometric_pressure", payload["barometric_pressure"])
+                            if from_node in self.current_data:
+                                self.current_data[from_node]["barometric_pressure"] = payload["barometric_pressure"]
+
+                    if "temperature" in payload:
+                        if payload["temperature"] > 0:
+                            client.publish(self.prefix + from_node + "/temperature", payload["temperature"])
+                            if from_node in self.current_data:
+                                self.current_data[from_node]["temperature"] = payload["temperature"]
+
+                    if "relative_humidity" in payload:
+                        if payload["relative_humidity"] > 0:
+                            client.publish(self.prefix + from_node + "/relative_humidity", payload["relative_humidity"])
+                            if from_node in self.current_data:
+                                self.current_data[from_node]["relative_humidity"] = payload["relative_humidity"]
+
+                    if "gas_resistance" in payload:
+                        if payload["gas_resistance"] > 0:
+                            client.publish(self.prefix + from_node + "/gas_resistance", payload["gas_resistance"])
+                            if from_node in self.current_data:
+                                self.current_data[from_node]["gas_resistance"] = payload["gas_resistance"]
+                    
+                    if "current" in payload:
+                        if payload["current"] > 0:
+                            client.publish(self.prefix + from_node + "/current", payload["current"])
+                            if from_node in self.current_data:
+                                self.current_data[from_node]["current"] = payload["current"]
+
+                elif json_unpacked["type"] == "nodeinfo":
+                    print("Nodeinfo received")
+
+                    client.publish(self.prefix + from_node + "/user", json.dumps(payload))
+
+                    if not from_node in self.current_data:
+                        self.current_data[from_node] = {}
+                    
+                    self.current_data[from_node]["shortName"] = payload["shortname"]
+                    self.current_data[from_node]["longName"] = payload["longname"]
+
+                    print('------------------ CALL DB STR ------------------')
+                    data_list = [payload["shortname"], payload["longname"]]
+                    self.calldict[from_node] = data_list
+                    print(self.calldict)
+                    #json_object = json.dumps(self.calldict, indent = 4)
+                    #print(json_object)
+                    with open("calldb.json", "w") as outfile:
+                        json.dump(self.calldict, outfile)
+                    print('------------------ CALL DB END ------------------')
+
+                elif json_unpacked["type"] == "text":
+                    print("Text received")
+                    text = {
+                        "message": payload["text"],
+                        "from": from_node,
+                        "to": to_node
+                    }
+                    client.publish(self.prefix + from_node + "/text_message", json.dumps(text))
+
+        client.subscribe(self.topics)
         client.on_message = on_message
 
 
