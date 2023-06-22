@@ -252,7 +252,10 @@ class MeshtasticMQTT():
                                 else:
                                     LongitudeEW = "W"
 
-                                Comment = 'MeshTastic ' + self.calldict[from_node][1]
+                                Comment = 'MeshTastic '
+                                if self.current_data[from_node]["hardware"] != "":
+                                    Comment = Comment + ' ' + str(self.current_data[from_node]["hardware"])
+                                Comment = Comment + ' ' + self.calldict[from_node][1]
                                 if self.current_data[from_node]["rssi"] != 0:
                                     Comment = Comment + ' RSSI: ' + str(self.current_data[from_node]["rssi"]) + ' dBm'
                                 if self.current_data[from_node]["snr"] != 0:
@@ -280,9 +283,15 @@ class MeshtasticMQTT():
                                     Comment = Comment + ' ChUtil: ' + f'{self.current_data[from_node]["channel_utilization"]:.1f}' + '%'
                                 if self.current_data[from_node]["air_util_tx"] != 0:
                                     Comment = Comment + ' AirUtil: ' + f'{self.current_data[from_node]["air_util_tx"]:.1f}' + '%'
-                                if self.current_data[from_node]["hardware"] != "":
-                                    Comment = Comment + ' ' + str(self.current_data[from_node]["hardware"])
-                                
+
+                                # Comment field in Position report Max. 43 chars // http://www.aprs.org/doc/APRS101.PDF
+                                # But we see it is not truncated by APRS-IS, so use as much as we need
+                                # comment_length = len(Comment)
+                                # print(f"Comment length: {comment_length}")
+                                # if comment_length > 43:
+                                #     print(f"Comment too long: {comment_length - 43}")
+                                #     Comment = Comment[:43]
+                                #     print(f"Truncating Comment to: {Comment}")
 
                                 # MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:={Latitude}{LatitudeNS}\{Longitude}{LongitudeEW}S{Comment}\n'
                                 MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
