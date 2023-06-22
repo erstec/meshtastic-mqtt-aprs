@@ -250,7 +250,7 @@ class MeshtasticMQTT():
                                 else:
                                     LongitudeEW = "W"
 
-                                Comment = 'MeshTastic '
+                                Comment = 'MeshTastic'
                                 if self.current_data[from_node]["hardware"] != "":
                                     Comment = Comment + ' ' + str(self.current_data[from_node]["hardware"])
                                 Comment = Comment + ' ' + self.calldict[from_node][1]
