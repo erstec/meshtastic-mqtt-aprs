@@ -66,6 +66,13 @@ class MeshtasticMQTT():
     aprsTable = config['aprsTable']
     aprsSymbol = config['aprsSymbol']
 
+    # APRS Telemetry
+    # Values: voltage, current, temperature, relative_humidity, barometric_pressure
+    aprsTlmNames = "Volt,Curr,Temp,Hum,Press"
+    aprsTlmUnits = "V,A,C,prc,hPa"
+    aprsTlmEqns = "0,1,0,0,1,0,0,1,0,0,1,0,0,1,0"
+    # a·x2 + b·x + c
+
     # Id -> Callsign DB
     calldict = {
     }
@@ -96,9 +103,11 @@ class MeshtasticMQTT():
             "temperature": 0,
             "channel_utilization": 0,
             "air_util_tx": 0,
-            "rssi": 0,
-            "snr": 0,
+            "rssi": "",
+            "snr": "",
             "hardware": "",
+            "aprsTlmCnt": 0,
+            "aprsAnnounceSent": False,
         }
     print(current_data)
     
@@ -127,6 +136,7 @@ class MeshtasticMQTT():
             print(f"Received msg from `{msg.topic}` topic")
 
             is_it_json = False
+            it_is_old = False
 
             # Try Parse
             try:
@@ -135,7 +145,7 @@ class MeshtasticMQTT():
                 mp = se.packet
                 # print(f"Received2o: `{se}`")
                 print(f"Received2o / '{mp.decoded.portnum}'")
-                is_it_json = False
+                it_is_old = True
             except:
                 try:
                     json_unpacked = json.loads(msg.payload)
@@ -151,20 +161,22 @@ class MeshtasticMQTT():
                 except:
                     print("Received2x: `Failed to parse`")
 
-            if not is_it_json:
+            if it_is_old:
                 if mp.decoded.portnum == portnums_pb2.POSITION_APP:
                     print("OLD Position/Signal Quality received")
                     snr = str(mp.rx_snr)
+                    print("SNR: " + snr)
                     if mp.rx_snr == 0:
-                        if self.current_data[str(getattr(mp, "from"))]["snr"] != 0:
-                            snr = str(self.current_data[str(getattr(mp, "from"))]["snr"])
+                        if self.current_data[str(getattr(mp, "from"))]["snr"] != "":
+                            snr = self.current_data[str(getattr(mp, "from"))]["snr"]
                     else:
                         self.current_data[str(getattr(mp, "from"))]["snr"] = snr
 
                     rssi = str(mp.priority)
+                    print("RSSI: " + rssi)
                     if mp.priority == 0:
-                        if self.current_data[str(getattr(mp, "from"))]["rssi"] != 0:
-                            rssi = str(self.current_data[str(getattr(mp, "from"))]["rssi"])
+                        if self.current_data[str(getattr(mp, "from"))]["rssi"] != "":
+                            rssi = self.current_data[str(getattr(mp, "from"))]["rssi"]
                     else:
                         self.current_data[str(getattr(mp, "from"))]["rssi"] = rssi
                     
@@ -198,7 +210,7 @@ class MeshtasticMQTT():
                         if from_node in self.calldict:
                             print("(CALL DB) Call is in DB, uploading to APRS")
                             if len(self.aprsHost) > 0 and len(self.aprsPort) > 0 and len(self.aprsHost) > 0:
-                                print('------------------------ APRS sending... ------------------------ ')
+                                print('----- APRS sending -----')
                                 try:
                                     AIS = aprslib.IS(self.aprsCall, passwd=self.aprsPass, host=self.aprsHost, port=self.aprsPort)
                                     AIS.connect()
@@ -208,6 +220,7 @@ class MeshtasticMQTT():
                                 DestCallsign = self.calldict[from_node][0] # take short name
                                 DestCallsign = DestCallsign + "-"
                                 DestCallsign = DestCallsign + format(json_unpacked["from"] & (2**32-1), 'x')[-4:] #last 4 bytes of ID
+                                DestCallsignUnaligned = DestCallsign
                                 DestCallsign = DestCallsign.ljust(9, ' ')
                                 
                                 # if "tst" in owntracks_payload:
@@ -254,9 +267,9 @@ class MeshtasticMQTT():
                                 if self.current_data[from_node]["hardware"] != "":
                                     Comment = Comment + ' ' + str(self.current_data[from_node]["hardware"])
                                 Comment = Comment + ' ' + self.calldict[from_node][1]
-                                if self.current_data[from_node]["rssi"] != 0:
+                                if self.current_data[from_node]["rssi"] != "":
                                     Comment = Comment + ' RSSI: ' + str(self.current_data[from_node]["rssi"]) + ' dBm'
-                                if self.current_data[from_node]["snr"] != 0:
+                                if self.current_data[from_node]["snr"] != "":
                                     Comment = Comment + ' SNR: ' + str(self.current_data[from_node]["snr"]) + ' dB'
                                 if "alt" in owntracks_payload:
                                     Comment = Comment + ' Alt: ' + str(owntracks_payload["alt"]) + 'm'
@@ -292,7 +305,8 @@ class MeshtasticMQTT():
                                 #     print(f"Truncating Comment to: {Comment}")
 
                                 # MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:={Latitude}{LatitudeNS}\{Longitude}{LongitudeEW}S{Comment}\n'
-                                MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
+                                # MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
+                                MESSAGEpacket = f'{DestCallsignUnaligned}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
                                 print('Sending APRS message')
                                 print(MESSAGEpacket)
 
@@ -366,6 +380,66 @@ class MeshtasticMQTT():
                             client.publish(self.prefix + from_node + "/current", payload["current"])
                             if from_node in self.current_data:
                                 self.current_data[from_node]["current"] = payload["current"]
+                    
+                    print('----- APRS sending -----')
+                    try:
+                        AIS = aprslib.IS(self.aprsCall, passwd=self.aprsPass, host=self.aprsHost, port=self.aprsPort)
+                        AIS.connect()
+                    except:
+                        print("An exception occurred")
+                        
+                    DestCallsign = self.calldict[from_node][0] # take short name
+                    DestCallsign = DestCallsign + "-"
+                    DestCallsign = DestCallsign + format(json_unpacked["from"] & (2**32-1), 'x')[-4:] #last 4 bytes of ID
+                    DestCallsignUnaligned = DestCallsign
+                    DestCallsign = DestCallsign.ljust(9, ' ')
+
+                    if self.current_data[from_node]["aprsTlmCnt"] % 6 == 0:
+                        print("Sending APRS Telemetry Announce")
+                        MESSAGEpacketAll = f'{DestCallsignUnaligned}>APZ32E::{DestCallsign}:PARM.{self.aprsTlmNames}\r\n'
+                        MESSAGEpacketAll = MESSAGEpacketAll + f'{DestCallsignUnaligned}>APZ32E::{DestCallsign}:UNIT.{self.aprsTlmUnits}\r\n'
+                        MESSAGEpacketAll = MESSAGEpacketAll + f'{DestCallsignUnaligned}>APZ32E::{DestCallsign}:EQNS.{self.aprsTlmEqns}\r\n'
+
+                        print(MESSAGEpacketAll)
+                        
+                        try:
+                            AIS.sendall(MESSAGEpacketAll)
+                            self.current_data[from_node]["aprsAnnounceSent"] = True
+                        except:
+                            print("APRS SEND: Exception occurred")
+                        
+                    if self.current_data[from_node]["aprsAnnounceSent"] == True:
+                        # Values: voltage, current, temperature, relative_humidity, barometric_pressure
+                        #val1 = "{:0}".format(self.current_data[from_node]["voltage"] * 100)
+                        #val1 = round(self.current_data[from_node]["voltage"] * 100, 0)
+                        val1 = int(self.current_data[from_node]["voltage"] * 10)
+                        val2 = int(self.current_data[from_node]["current"] * 10)
+                        val3 = int(self.current_data[from_node]["temperature"] * 10)
+                        val4 = int(self.current_data[from_node]["relative_humidity"])
+                        val5 = int(self.current_data[from_node]["barometric_pressure"])
+                        # MESSAGEpacketTLM = f'{self.aprsCall}:T#{self.current_data[from_node]["aprsTlmCnt"]:03d},{self.current_data[from_node]["voltage"]:.2f},{self.current_data[from_node]["current"]:.1f},{self.current_data[from_node]["temperature"]:.1f},{self.current_data[from_node]["relative_humidity"]:.0f},{self.current_data[from_node]["barometric_pressure"]:.0f},00000000\n'
+                        MESSAGEpacketTLM = f'{DestCallsignUnaligned}>APZ32E:T#{self.current_data[from_node]["aprsTlmCnt"]:03d},{val1},{val2},{val3},{val4},{val5},00000000\r\n'
+                        print('Sending APRS Telemetry Packet')
+                        print(MESSAGEpacketTLM)
+
+                        try:
+                            AIS.sendall(MESSAGEpacketTLM)
+                        except:
+                            print("APRS SEND: Exception occurred")
+
+                        # Telemetry packet counter [000-999]
+                        self.current_data[from_node]["aprsTlmCnt"] += 1
+                        if self.current_data[from_node]["aprsTlmCnt"] > 999:
+                            self.current_data[from_node]["aprsTlmCnt"] = 0
+                    
+                    else:
+                        print('NOT Sending APRS Telemetry Packet')
+                        print('APRS announce not sent yet')
+                        
+                    try:
+                        AIS.close()
+                    except:
+                        print("APRS SEND: Exception occurred")
 
                 elif json_unpacked["type"] == "nodeinfo":
                     print("Nodeinfo received")
