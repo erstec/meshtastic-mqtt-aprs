@@ -66,6 +66,10 @@ class MeshtasticMQTT():
     aprsTable = config['aprsTable']
     aprsSymbol = config['aprsSymbol']
 
+    aprsTlmNames = "PARM.RF->INET,INET->RF,DigiRpt,TX2RF,DropRx"
+    aprsTlmUnits = "Packets,Packets,Packets,Packets,Packets"
+    aprsTlmEqns = "0,0,0,0,0"
+
     # Id -> Callsign DB
     calldict = {
     }
@@ -99,6 +103,8 @@ class MeshtasticMQTT():
             "rssi": 0,
             "snr": 0,
             "hardware": "",
+            "aprsTlmCnt": 0,
+            "aprsAnnounceSent": False,
         }
     print(current_data)
     
@@ -198,7 +204,7 @@ class MeshtasticMQTT():
                         if from_node in self.calldict:
                             print("(CALL DB) Call is in DB, uploading to APRS")
                             if len(self.aprsHost) > 0 and len(self.aprsPort) > 0 and len(self.aprsHost) > 0:
-                                print('------------------------ APRS sending... ------------------------ ')
+                                print('----- APRS sending -----')
                                 try:
                                     AIS = aprslib.IS(self.aprsCall, passwd=self.aprsPass, host=self.aprsHost, port=self.aprsPort)
                                     AIS.connect()
@@ -366,6 +372,37 @@ class MeshtasticMQTT():
                             client.publish(self.prefix + from_node + "/current", payload["current"])
                             if from_node in self.current_data:
                                 self.current_data[from_node]["current"] = payload["current"]
+                    
+                    if self.current_data[from_node]["aprsAnnounceSent"] == True:
+                        print('----- APRS sending -----')
+                        try:
+                            AIS = aprslib.IS(self.aprsCall, passwd=self.aprsPass, host=self.aprsHost, port=self.aprsPort)
+                            AIS.connect()
+                        except:
+                            print("An exception occurred")
+                        
+                        DestCallsign = self.calldict[from_node][0] # take short name
+                        DestCallsign = DestCallsign + "-"
+                        DestCallsign = DestCallsign + format(json_unpacked["from"] & (2**32-1), 'x')[-4:] #last 4 bytes of ID
+                        DestCallsign = DestCallsign.ljust(9, ' ')
+
+                        MESSAGEpacketTLM = f'{self.aprsCall}>APZ32E::{DestCallsign}:T#{self.current_data[from_node]["aprsTlmCnt"]:03d},{self.current_data[from_node]["voltage"]:.2f},{self.current_data[from_node]["battery_level"]},{self.current_data[from_node]["temperature"]},{self.current_data[from_node]["relative_humidity"]},{self.current_data[from_node]["current"]}\n'
+                        print('Sending APRS message')
+                        print(MESSAGEpacketTLM)
+
+                        # Telemetry packet counter [000-999]
+                        self.current_data[from_node]["aprsTlmCnt"] += 1
+                        if self.current_data[from_node]["aprsTlmCnt"] > 999:
+                            self.current_data[from_node]["aprsTlmCnt"] = 0
+                        
+                        try:
+                            # AIS.sendall(MESSAGEpacketTLM)
+                            AIS.close()
+                        except:
+                            print("APRS SEND: Exception occurred")
+                    else:
+                        print('----- APRS not sending -----')
+                        print('APRS announce not sent yet')
 
                 elif json_unpacked["type"] == "nodeinfo":
                     print("Nodeinfo received")
@@ -453,6 +490,37 @@ class MeshtasticMQTT():
                             self.current_data[from_node]["hardware"] = "PRIVATE_HW"
                         else:
                             self.current_data[from_node]["hardware"] = "UNKNOWN"
+                    
+                    print('----- APRS sending -----')
+                    try:
+                        AIS = aprslib.IS(self.aprsCall, passwd=self.aprsPass, host=self.aprsHost, port=self.aprsPort)
+                        AIS.connect()
+                    except:
+                        print("An exception occurred")
+                    
+                    DestCallsign = self.calldict[from_node][0] # take short name
+                    DestCallsign = DestCallsign + "-"
+                    DestCallsign = DestCallsign + format(json_unpacked["from"] & (2**32-1), 'x')[-4:] #last 4 bytes of ID
+                    DestCallsign = DestCallsign.ljust(9, ' ')
+                    
+                    MESSAGEpacketNames = f'{self.aprsCall}>APZ32E::{DestCallsign}:PARM.{self.aprsTlmNames}\n'
+                    MESSAGEpacketUnits = f'{self.aprsCall}>APZ32E::{DestCallsign}:UNIT.{self.aprsTlmUnits}\n'
+                    MESSAGEpacketEqns  = f'{self.aprsCall}>APZ32E::{DestCallsign}:EQNS.{self.aprsTlmEqns}\n'
+                    # MESSAGEpacketEqns = f'{self.aprsCall}>APZ32E,WIDE1-1:{DestCallsign}:EQNS.{self.aprsTlmEqns}\n'
+                    print('Sending APRS messages')
+                    print(MESSAGEpacketNames)
+                    print(MESSAGEpacketUnits)
+                    print(MESSAGEpacketEqns)
+                    
+                    try:
+                        # AIS.sendall(MESSAGEpacketNames)
+                        # AIS.sendall(MESSAGEpacketUnits)
+                        # AIS.sendall(MESSAGEpacketEqns)
+                        AIS.close()
+                    except:
+                        print("APRS SEND: Exception occurred")
+                    
+                    self.current_data[from_node]["aprsAnnounceSent"] = True
 
                     print('------------------ CALL DB STR ------------------')
                     data_list = [payload["shortname"], payload["longname"]]
