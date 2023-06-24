@@ -108,6 +108,8 @@ class MeshtasticMQTT():
             "hardware": "",
             "aprsTlmCnt": 0,
             "aprsAnnounceSent": False,
+            "lastMsgId": 0,
+            "lastMsgIdOld": 0,
         }
     print(current_data)
     
@@ -145,6 +147,12 @@ class MeshtasticMQTT():
                 mp = se.packet
                 # print(f"Received2o: `{se}`")
                 print(f"Received2o / '{mp.decoded.portnum}'")
+
+                # Check if message is already received before
+                if self.current_data[str(getattr(mp, "from"))]["lastMsgIdOld"] == mp.id:
+                    print("Message already received")
+                    return
+
                 it_is_old = True
             except:
                 try:
@@ -156,6 +164,13 @@ class MeshtasticMQTT():
 
                     from_node = str(json_unpacked["from"])
                     to_node = str(json_unpacked["to"])
+
+                    msg_id = str(json_unpacked["id"])
+
+                    # Check if message is already received before
+                    if self.current_data[from_node]["lastMsgId"] == msg_id:
+                        print("Message already received")
+                        return
 
                     is_it_json = True
                 except:
@@ -188,6 +203,9 @@ class MeshtasticMQTT():
                     }
                     client.publish(self.prefix + str(getattr(mp, "from")) + "/link_quality", json.dumps(link_quality))
 
+                    # Save message id to prevent duplicate messages from being processed
+                    self.current_data[str(getattr(mp, "from"))]["lastMsgIdOld"] = mp.id
+
             elif is_it_json:
                 if json_unpacked["type"] == "position":
                     print("Position received")
@@ -215,7 +233,8 @@ class MeshtasticMQTT():
                                     AIS = aprslib.IS(self.aprsCall, passwd=self.aprsPass, host=self.aprsHost, port=self.aprsPort)
                                     AIS.connect()
                                 except:
-                                    print("An exception occurred")                                    
+                                    print("An exception occurred")
+                                    return
 
                                 DestCallsign = self.calldict[from_node][0] # take short name
                                 DestCallsign = DestCallsign + "-"
@@ -321,6 +340,9 @@ class MeshtasticMQTT():
                                     AIS.close()
                                 except:
                                     print("APRS SEND: Exception occurred")
+
+                                # Save message ID to DB to avoid duplicate messages parsing
+                                self.current_data[from_node]["lastMsgId"] = msg_id
                         else:
                             print("(CALL DB) Call is NOT in DB, skip APRS upload")
                 
@@ -387,6 +409,7 @@ class MeshtasticMQTT():
                         AIS.connect()
                     except:
                         print("An exception occurred")
+                        return
                         
                     DestCallsign = self.calldict[from_node][0] # take short name
                     DestCallsign = DestCallsign + "-"
@@ -433,8 +456,10 @@ class MeshtasticMQTT():
                             self.current_data[from_node]["aprsTlmCnt"] = 0
                     
                     else:
-                        print('NOT Sending APRS Telemetry Packet')
-                        print('APRS announce not sent yet')
+                        print('NOT Sending APRS Telemetry Packet, APRS announce not sent yet')
+                    
+                    # Save message ID to DB to avoid duplicate messages parsing
+                    self.current_data[from_node]["lastMsgId"] = msg_id
                         
                     try:
                         AIS.close()
@@ -538,6 +563,9 @@ class MeshtasticMQTT():
                         json.dump(self.calldict, outfile)
                     print('------------------ CALL DB END ------------------')
 
+                    # Save message ID to DB to avoid duplicate messages parsing
+                    self.current_data[from_node]["lastMsgId"] = msg_id
+
                 elif json_unpacked["type"] == "text":
                     print("Text received")
                     text = {
@@ -546,6 +574,9 @@ class MeshtasticMQTT():
                         "to": to_node
                     }
                     client.publish(self.prefix + from_node + "/text_message", json.dumps(text))
+
+                    # Save message ID to DB to avoid duplicate messages parsing
+                    self.current_data[from_node]["lastMsgId"] = msg_id
 
         client.subscribe(self.topics)
         client.on_message = on_message
