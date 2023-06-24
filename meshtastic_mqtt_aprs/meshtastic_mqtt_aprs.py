@@ -69,7 +69,7 @@ class MeshtasticMQTT():
     # APRS Telemetry
     # Values: voltage, current, temperature, relative_humidity, barometric_pressure
     aprsTlmNames = "Volt,Curr,Temp,Hum,Press"
-    aprsTlmUnits = "V,A,C,prc,hPa"
+    aprsTlmUnits = "Volt,Amp,deg.C,Perc,hPa"
     aprsTlmEqns = "0,1,0,0,1,0,0,1,0,0,1,0,0,1,0"
     # a·x2 + b·x + c
 
