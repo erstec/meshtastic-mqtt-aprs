@@ -146,12 +146,19 @@ class MeshtasticMQTT():
                 se.ParseFromString(msg.payload)
                 mp = se.packet
                 # print(f"Received2o: `{se}`")
+                # print(f"Received2o / '{mp}'")
                 print(f"Received2o / '{mp.decoded.portnum}'")
+                
+                if getattr(mp, "from") == 4:
+                    print("ID = 4 detected! Aborting!")
+                    return
 
                 # Check if message is already received before
-                if self.current_data[str(getattr(mp, "from"))]["lastMsgIdOld"] == mp.id:
-                    print("Message already received")
-                    return
+                if str(getattr(mp, "from")) in self.current_data:
+                    if "lastMsgIdOld" in self.current_data[str(getattr(mp, "from"))]:
+                        if self.current_data[str(getattr(mp, "from"))]["lastMsgIdOld"] == mp.id:
+                            print("Message already received")
+                            return
 
                 it_is_old = True
             except:
@@ -167,10 +174,16 @@ class MeshtasticMQTT():
 
                     msg_id = str(json_unpacked["id"])
 
-                    # Check if message is already received before
-                    if self.current_data[from_node]["lastMsgId"] == msg_id:
-                        print("Message already received")
+                    if json_unpacked["from"] == 4:
+                        print("ID = 4 detected! Aborting!")
                         return
+
+                    # Check if message is already received before
+                    if from_node in self.current_data:
+                        if "lastMsgId" in self.current_data[from_node]:
+                            if self.current_data[from_node]["lastMsgId"] == msg_id:
+                                print("Message already received")
+                                return
 
                     is_it_json = True
                 except:
@@ -181,19 +194,21 @@ class MeshtasticMQTT():
                     print("OLD Position/Signal Quality received")
                     snr = str(mp.rx_snr)
                     print("SNR: " + snr)
-                    if mp.rx_snr == 0:
-                        if self.current_data[str(getattr(mp, "from"))]["snr"] != "":
-                            snr = self.current_data[str(getattr(mp, "from"))]["snr"]
-                    else:
-                        self.current_data[str(getattr(mp, "from"))]["snr"] = snr
+                    if str(getattr(mp, "from")) in self.current_data:
+                        if mp.rx_snr == 0:
+                            if self.current_data[str(getattr(mp, "from"))]["snr"] != "":
+                                snr = self.current_data[str(getattr(mp, "from"))]["snr"]
+                        else:
+                            self.current_data[str(getattr(mp, "from"))]["snr"] = snr
 
                     rssi = str(mp.priority)
                     print("RSSI: " + rssi)
-                    if mp.priority == 0:
-                        if self.current_data[str(getattr(mp, "from"))]["rssi"] != "":
-                            rssi = self.current_data[str(getattr(mp, "from"))]["rssi"]
-                    else:
-                        self.current_data[str(getattr(mp, "from"))]["rssi"] = rssi
+                    if str(getattr(mp, "from")) in self.current_data:
+                        if mp.priority == 0:
+                            if self.current_data[str(getattr(mp, "from"))]["rssi"] != "":
+                                rssi = self.current_data[str(getattr(mp, "from"))]["rssi"]
+                        else:
+                            self.current_data[str(getattr(mp, "from"))]["rssi"] = rssi
                     
                     print("RSSI: " + rssi + " SNR: " + snr)
                     
@@ -204,7 +219,8 @@ class MeshtasticMQTT():
                     client.publish(self.prefix + str(getattr(mp, "from")) + "/link_quality", json.dumps(link_quality))
 
                     # Save message id to prevent duplicate messages from being processed
-                    self.current_data[str(getattr(mp, "from"))]["lastMsgIdOld"] = mp.id
+                    if str(getattr(mp, "from")) in self.current_data:
+                        self.current_data[str(getattr(mp, "from"))]["lastMsgIdOld"] = mp.id
 
             elif is_it_json:
                 if json_unpacked["type"] == "position":
@@ -342,7 +358,8 @@ class MeshtasticMQTT():
                                     print("APRS SEND: Exception occurred")
 
                                 # Save message ID to DB to avoid duplicate messages parsing
-                                self.current_data[from_node]["lastMsgId"] = msg_id
+                                if from_node in self.current_data:
+                                    self.current_data[from_node]["lastMsgId"] = msg_id
                         else:
                             print("(CALL DB) Call is NOT in DB, skip APRS upload")
                 
@@ -410,61 +427,65 @@ class MeshtasticMQTT():
                     except:
                         print("An exception occurred")
                         return
-                        
-                    DestCallsign = self.calldict[from_node][0] # take short name
-                    DestCallsign = DestCallsign + "-"
-                    DestCallsign = DestCallsign + format(json_unpacked["from"] & (2**32-1), 'x')[-4:] #last 4 bytes of ID
-                    DestCallsignUnaligned = DestCallsign
-                    DestCallsign = DestCallsign.ljust(9, ' ')
 
-                    if self.current_data[from_node]["aprsTlmCnt"] % 6 == 0:
-                        print("Sending APRS Telemetry Announce")
-                        MESSAGEpacketAll = f'{DestCallsignUnaligned}>APZ32E::{DestCallsign}:PARM.{self.aprsTlmNames}\r\n'
-                        MESSAGEpacketAll = MESSAGEpacketAll + f'{DestCallsignUnaligned}>APZ32E::{DestCallsign}:UNIT.{self.aprsTlmUnits}\r\n'
-                        MESSAGEpacketAll = MESSAGEpacketAll + f'{DestCallsignUnaligned}>APZ32E::{DestCallsign}:EQNS.{self.aprsTlmEqns}\r\n'
+                    if from_node in self.calldict:   
+                        DestCallsign = self.calldict[from_node][0] # take short name
+                        DestCallsign = DestCallsign + "-"
+                        DestCallsign = DestCallsign + format(json_unpacked["from"] & (2**32-1), 'x')[-4:] #last 4 bytes of ID
+                        DestCallsignUnaligned = DestCallsign
+                        DestCallsign = DestCallsign.ljust(9, ' ')
 
-                        print(MESSAGEpacketAll)
+                        if self.current_data[from_node]["aprsTlmCnt"] % 6 == 0:
+                            print("Sending APRS Telemetry Announce")
+                            MESSAGEpacketAll = f'{DestCallsignUnaligned}>APZ32E::{DestCallsign}:PARM.{self.aprsTlmNames}\r\n'
+                            MESSAGEpacketAll = MESSAGEpacketAll + f'{DestCallsignUnaligned}>APZ32E::{DestCallsign}:UNIT.{self.aprsTlmUnits}\r\n'
+                            MESSAGEpacketAll = MESSAGEpacketAll + f'{DestCallsignUnaligned}>APZ32E::{DestCallsign}:EQNS.{self.aprsTlmEqns}\r\n'
+
+                            print(MESSAGEpacketAll)
+                            
+                            try:
+                                AIS.sendall(MESSAGEpacketAll)
+                                self.current_data[from_node]["aprsAnnounceSent"] = True
+                            except:
+                                print("APRS SEND: Exception occurred")
+                            
+                        if self.current_data[from_node]["aprsAnnounceSent"] == True:
+                            # Values: voltage, current, temperature, relative_humidity, barometric_pressure
+                            #val1 = "{:0}".format(self.current_data[from_node]["voltage"] * 100)
+                            #val1 = round(self.current_data[from_node]["voltage"] * 100, 0)
+                            val1 = int(self.current_data[from_node]["voltage"] * 10)
+                            val2 = int(self.current_data[from_node]["current"] * 10)
+                            val3 = int(self.current_data[from_node]["temperature"] * 10)
+                            val4 = int(self.current_data[from_node]["relative_humidity"])
+                            val5 = int(self.current_data[from_node]["barometric_pressure"])
+                            # MESSAGEpacketTLM = f'{self.aprsCall}:T#{self.current_data[from_node]["aprsTlmCnt"]:03d},{self.current_data[from_node]["voltage"]:.2f},{self.current_data[from_node]["current"]:.1f},{self.current_data[from_node]["temperature"]:.1f},{self.current_data[from_node]["relative_humidity"]:.0f},{self.current_data[from_node]["barometric_pressure"]:.0f},00000000\n'
+                            MESSAGEpacketTLM = f'{DestCallsignUnaligned}>APZ32E:T#{self.current_data[from_node]["aprsTlmCnt"]:03d},{val1},{val2},{val3},{val4},{val5},00000000\r\n'
+                            print('Sending APRS Telemetry Packet')
+                            print(MESSAGEpacketTLM)
+
+                            try:
+                                AIS.sendall(MESSAGEpacketTLM)
+                            except:
+                                print("APRS SEND: Exception occurred")
+
+                            # Telemetry packet counter [000-999]
+                            self.current_data[from_node]["aprsTlmCnt"] += 1
+                            if self.current_data[from_node]["aprsTlmCnt"] > 999:
+                                self.current_data[from_node]["aprsTlmCnt"] = 0
                         
+                        else:
+                            print('NOT Sending APRS Telemetry Packet, APRS announce not sent yet')
+                        
+                        # Save message ID to DB to avoid duplicate messages parsing
+                        if from_node in self.current_data:
+                            self.current_data[from_node]["lastMsgId"] = msg_id
+                            
                         try:
-                            AIS.sendall(MESSAGEpacketAll)
-                            self.current_data[from_node]["aprsAnnounceSent"] = True
+                            AIS.close()
                         except:
                             print("APRS SEND: Exception occurred")
-                        
-                    if self.current_data[from_node]["aprsAnnounceSent"] == True:
-                        # Values: voltage, current, temperature, relative_humidity, barometric_pressure
-                        #val1 = "{:0}".format(self.current_data[from_node]["voltage"] * 100)
-                        #val1 = round(self.current_data[from_node]["voltage"] * 100, 0)
-                        val1 = int(self.current_data[from_node]["voltage"] * 10)
-                        val2 = int(self.current_data[from_node]["current"] * 10)
-                        val3 = int(self.current_data[from_node]["temperature"] * 10)
-                        val4 = int(self.current_data[from_node]["relative_humidity"])
-                        val5 = int(self.current_data[from_node]["barometric_pressure"])
-                        # MESSAGEpacketTLM = f'{self.aprsCall}:T#{self.current_data[from_node]["aprsTlmCnt"]:03d},{self.current_data[from_node]["voltage"]:.2f},{self.current_data[from_node]["current"]:.1f},{self.current_data[from_node]["temperature"]:.1f},{self.current_data[from_node]["relative_humidity"]:.0f},{self.current_data[from_node]["barometric_pressure"]:.0f},00000000\n'
-                        MESSAGEpacketTLM = f'{DestCallsignUnaligned}>APZ32E:T#{self.current_data[from_node]["aprsTlmCnt"]:03d},{val1},{val2},{val3},{val4},{val5},00000000\r\n'
-                        print('Sending APRS Telemetry Packet')
-                        print(MESSAGEpacketTLM)
-
-                        try:
-                            AIS.sendall(MESSAGEpacketTLM)
-                        except:
-                            print("APRS SEND: Exception occurred")
-
-                        # Telemetry packet counter [000-999]
-                        self.current_data[from_node]["aprsTlmCnt"] += 1
-                        if self.current_data[from_node]["aprsTlmCnt"] > 999:
-                            self.current_data[from_node]["aprsTlmCnt"] = 0
-                    
                     else:
-                        print('NOT Sending APRS Telemetry Packet, APRS announce not sent yet')
-                    
-                    # Save message ID to DB to avoid duplicate messages parsing
-                    self.current_data[from_node]["lastMsgId"] = msg_id
-                        
-                    try:
-                        AIS.close()
-                    except:
-                        print("APRS SEND: Exception occurred")
+                        print("(CALL DB) Call is NOT in DB, skip APRS Telemetry upload")
 
                 elif json_unpacked["type"] == "nodeinfo":
                     print("Nodeinfo received")
@@ -472,7 +493,27 @@ class MeshtasticMQTT():
                     client.publish(self.prefix + from_node + "/user", json.dumps(payload))
 
                     if not from_node in self.current_data:
-                        self.current_data[from_node] = {}
+                        self.current_data[from_node] = {
+                            "latitude_i": 0,
+                            "longitude_i": 0,
+                            "altitude": 0,
+                            "battery_level": 0,
+                            "voltage": 0,
+                            "barometric_pressure": 0,
+                            "current": 0,
+                            "gas_resistance": 0,
+                            "relative_humidity": 0,
+                            "temperature": 0,
+                            "channel_utilization": 0,
+                            "air_util_tx": 0,
+                            "rssi": "",
+                            "snr": "",
+                            "hardware": "",
+                            "aprsTlmCnt": 0,
+                            "aprsAnnounceSent": False,
+                            "lastMsgId": 0,
+                            "lastMsgIdOld": 0,
+                        }
                     
                     if "hardware" in payload:
                         # self.current_data[from_node]["hardware"] = payload["hardware"]
@@ -564,7 +605,8 @@ class MeshtasticMQTT():
                     print('------------------ CALL DB END ------------------')
 
                     # Save message ID to DB to avoid duplicate messages parsing
-                    self.current_data[from_node]["lastMsgId"] = msg_id
+                    if from_node in self.current_data:
+                        self.current_data[from_node]["lastMsgId"] = msg_id
 
                 elif json_unpacked["type"] == "text":
                     print("Text received")
@@ -576,7 +618,8 @@ class MeshtasticMQTT():
                     client.publish(self.prefix + from_node + "/text_message", json.dumps(text))
 
                     # Save message ID to DB to avoid duplicate messages parsing
-                    self.current_data[from_node]["lastMsgId"] = msg_id
+                    if from_node in self.current_data:
+                        self.current_data[from_node]["lastMsgId"] = msg_id
 
         client.subscribe(self.topics)
         client.on_message = on_message
