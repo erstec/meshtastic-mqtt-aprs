@@ -367,58 +367,67 @@ class MeshtasticMQTT():
                     print("Telemetry received")
 
                     if "voltage" in payload:
-                        if payload["voltage"] > 0:
-                            client.publish(self.prefix + from_node + "/voltage", payload["voltage"])
-                            if from_node in self.current_data:
-                                self.current_data[from_node]["voltage"] = payload["voltage"]
+                        if payload["voltage"] != None:
+                            if payload["voltage"] > 0:
+                                client.publish(self.prefix + from_node + "/voltage", payload["voltage"])
+                                if from_node in self.current_data:
+                                    self.current_data[from_node]["voltage"] = payload["voltage"]
                     
                     if "air_util_tx" in payload:
-                        if payload["air_util_tx"] > 0:
-                            client.publish(self.prefix + from_node + "/air_util_tx", payload["air_util_tx"])
-                            if from_node in self.current_data:
-                                self.current_data[from_node]["air_util_tx"] = payload["air_util_tx"]
+                        if payload["air_util_tx"] != None:
+                            if payload["air_util_tx"] > 0:
+                                client.publish(self.prefix + from_node + "/air_util_tx", payload["air_util_tx"])
+                                if from_node in self.current_data:
+                                    self.current_data[from_node]["air_util_tx"] = payload["air_util_tx"]
 
                     if "channel_utilization" in payload:
-                        if payload["channel_utilization"] > 0:
-                            client.publish(self.prefix + from_node + "/channel_utilization", payload["channel_utilization"])
-                            if from_node in self.current_data:
-                                self.current_data[from_node]["channel_utilization"] = payload["channel_utilization"]
+                        if payload["channel_utilization"] != None:
+                            if payload["channel_utilization"] > 0:
+                                client.publish(self.prefix + from_node + "/channel_utilization", payload["channel_utilization"])
+                                if from_node in self.current_data:
+                                    self.current_data[from_node]["channel_utilization"] = payload["channel_utilization"]
                     
                     if "battery_level" in payload:
-                        if payload["battery_level"] > 0:
-                            client.publish(self.prefix + from_node + "/battery_level", payload["battery_level"])
-                            if from_node in self.current_data:
-                                self.current_data[from_node]["battery_level"] = payload["battery_level"]
+                        if payload["battery_level"] != None:
+                            if payload["battery_level"] > 0:
+                                client.publish(self.prefix + from_node + "/battery_level", payload["battery_level"])
+                                if from_node in self.current_data:
+                                    self.current_data[from_node]["battery_level"] = payload["battery_level"]
                     
                     if "barometric_pressure" in payload:
-                        if payload["barometric_pressure"] > 0:
-                            client.publish(self.prefix + from_node + "/barometric_pressure", payload["barometric_pressure"])
-                            if from_node in self.current_data:
-                                self.current_data[from_node]["barometric_pressure"] = payload["barometric_pressure"]
+                        if payload["barometric_pressure"] != None:
+                            if payload["barometric_pressure"] > 0:
+                                client.publish(self.prefix + from_node + "/barometric_pressure", payload["barometric_pressure"])
+                                if from_node in self.current_data:
+                                    self.current_data[from_node]["barometric_pressure"] = payload["barometric_pressure"]
 
                     if "temperature" in payload:
-                        if payload["temperature"] > 0:
-                            client.publish(self.prefix + from_node + "/temperature", payload["temperature"])
-                            if from_node in self.current_data:
-                                self.current_data[from_node]["temperature"] = payload["temperature"]
+                        if payload["temperature"] != None:
+                            if payload["temperature"] > 0:
+                                client.publish(self.prefix + from_node + "/temperature", payload["temperature"])
+                                if from_node in self.current_data:
+                                    self.current_data[from_node]["temperature"] = payload["temperature"]
 
                     if "relative_humidity" in payload:
-                        if payload["relative_humidity"] > 0:
-                            client.publish(self.prefix + from_node + "/relative_humidity", payload["relative_humidity"])
-                            if from_node in self.current_data:
-                                self.current_data[from_node]["relative_humidity"] = payload["relative_humidity"]
+                        if payload["relative_humidity"] != None:
+                            if payload["relative_humidity"] > 0:
+                                client.publish(self.prefix + from_node + "/relative_humidity", payload["relative_humidity"])
+                                if from_node in self.current_data:
+                                    self.current_data[from_node]["relative_humidity"] = payload["relative_humidity"]
 
                     if "gas_resistance" in payload:
-                        if payload["gas_resistance"] > 0:
-                            client.publish(self.prefix + from_node + "/gas_resistance", payload["gas_resistance"])
-                            if from_node in self.current_data:
-                                self.current_data[from_node]["gas_resistance"] = payload["gas_resistance"]
+                        if payload["gas_resistance"] != None:
+                            if payload["gas_resistance"] > 0:
+                                client.publish(self.prefix + from_node + "/gas_resistance", payload["gas_resistance"])
+                                if from_node in self.current_data:
+                                    self.current_data[from_node]["gas_resistance"] = payload["gas_resistance"]
                     
                     if "current" in payload:
-                        if payload["current"] > 0:
-                            client.publish(self.prefix + from_node + "/current", payload["current"])
-                            if from_node in self.current_data:
-                                self.current_data[from_node]["current"] = payload["current"]
+                        if payload["current"] != None:
+                            if payload["current"] > 0:
+                                client.publish(self.prefix + from_node + "/current", payload["current"])
+                                if from_node in self.current_data:
+                                    self.current_data[from_node]["current"] = payload["current"]
                     
                     print('----- APRS sending -----')
                     try:
