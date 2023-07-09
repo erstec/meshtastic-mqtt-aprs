@@ -26,6 +26,8 @@ from google.protobuf.json_format import MessageToJson
 #swap for AppDaemon
 #class MeshtasticMQTT(hass.Hass=None):
 class MeshtasticMQTT():
+    print ("Meshtastic MQTT APRS 2.1.1")
+
     parser = argparse.ArgumentParser(description='Meshtastic MQTT APRS', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--mqttServer', default='localhost', help='MQTT Broker Address')
     parser.add_argument('--mqttPort', default=1883, type=int, help='MQTT Broker Port')
@@ -138,7 +140,6 @@ class MeshtasticMQTT():
             print(f"Received msg from `{msg.topic}` topic")
 
             topic_mode = msg.topic.split("/")[3]
-            print("TEST")
             print(f"Topic mode: {topic_mode}")
 
             is_it_json = False
