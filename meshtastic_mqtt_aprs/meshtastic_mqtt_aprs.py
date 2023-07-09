@@ -304,7 +304,8 @@ class MeshtasticMQTT():
                                     LongitudeEW = "W"
 
                                 Comment = 'MeshTastic'
-                                Comment = Comment + ' ' + topic_mode
+                                if topic_mode == "MediumFast" or topic_mode == "LongFast":
+                                    Comment = Comment + ' ' + topic_mode
                                 if self.current_data[from_node]["hardware"] != "":
                                     Comment = Comment + ' ' + str(self.current_data[from_node]["hardware"])
                                 Comment = Comment + ' ' + self.calldict[from_node][1]
