@@ -26,7 +26,7 @@ from google.protobuf.json_format import MessageToJson
 #swap for AppDaemon
 #class MeshtasticMQTT(hass.Hass=None):
 class MeshtasticMQTT():
-    print ("Meshtastic MQTT APRS 2.1.1")
+    print ("Meshtastic MQTT APRS 2.1.2")
 
     parser = argparse.ArgumentParser(description='Meshtastic MQTT APRS', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--mqttServer', default='localhost', help='MQTT Broker Address')
@@ -347,7 +347,11 @@ class MeshtasticMQTT():
 
                                 # MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:={Latitude}{LatitudeNS}\{Longitude}{LongitudeEW}S{Comment}\n'
                                 # MESSAGEpacket = f'{self.aprsCall}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
-                                MESSAGEpacket = f'{DestCallsignUnaligned}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{self.aprsSymbol}{Comment}\n'
+                                if topic_mode == "LongFast":
+                                    aprs_symbol = "r"
+                                else:
+                                    aprs_symbol = self.aprsSymbol
+                                MESSAGEpacket = f'{DestCallsignUnaligned}>APZ32E,WIDE1-1:;{DestCallsign}*{TimeStamp}z{Latitude}{LatitudeNS}{self.aprsTable}{Longitude}{LongitudeEW}{aprs_symbol}{Comment}\n'
                                 print('Sending APRS message')
                                 print(MESSAGEpacket)
 
