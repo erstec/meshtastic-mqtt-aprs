@@ -138,6 +138,8 @@ class MeshtasticMQTT():
             print(f"Received msg from `{msg.topic}` topic")
 
             topic_mode = msg.topic.split("/")[3]
+            print("TEST")
+            print(f"Topic mode: {topic_mode}")
 
             is_it_json = False
             it_is_old = False
