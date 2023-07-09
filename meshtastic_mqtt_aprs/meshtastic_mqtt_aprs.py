@@ -137,6 +137,8 @@ class MeshtasticMQTT():
             print("------------------")
             print(f"Received msg from `{msg.topic}` topic")
 
+            topic_mode = msg.topic.split("/")[3]
+
             is_it_json = False
             it_is_old = False
 
@@ -299,6 +301,7 @@ class MeshtasticMQTT():
                                     LongitudeEW = "W"
 
                                 Comment = 'MeshTastic'
+                                Comment = Comment + ' ' + topic_mode
                                 if self.current_data[from_node]["hardware"] != "":
                                     Comment = Comment + ' ' + str(self.current_data[from_node]["hardware"])
                                 Comment = Comment + ' ' + self.calldict[from_node][1]
