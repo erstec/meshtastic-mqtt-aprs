@@ -20,4 +20,4 @@ RUN apk add --no-cache git \
 LABEL description="MeshTastic 2.1 MQTT to APRS gateway"
 ENV PYTHONUNBUFFERED=1
 
-ENTRYPOINT /usr/local/bin/python3 /usr/local/bin/meshtastic-mqtt-aprs --mqttServer ${MSH_MQTT_SERVER} --mqttUsername ${MSH_MQTT_USER} --mqttPassword ${MSH_MQTT_PSW} --aprsPort ${MSH_APRS_PORT} ${MSH_APRS_CALL} ${MSH_APRS_HOST} ${MSH_APRS_PASS}
+ENTRYPOINT /usr/local/bin/python3 /usr/local/bin/meshtastic-mqtt-aprs --mqttServer ${MSH_MQTT_SERVER} --mqttUsername ${MSH_MQTT_USER} --mqttPassword ${MSH_MQTT_PSW} --aprsPort ${MSH_APRS_PORT} --telegramToken=${TELEGRAM_TOKEN} --telegramChatId=${TELEGRAM_CHATID} ${MSH_APRS_CALL} ${MSH_APRS_HOST} ${MSH_APRS_PASS}

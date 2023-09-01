@@ -14,7 +14,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 # This call to setup() does all the work
 setup(
     name="meshtastic_mqtt_aprs",
-    version="2.1.2",
+    version="2.1.5",
     description="A python script to translate Meshtastic MQTT location messages into a format that APRS can understand.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -28,7 +28,7 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     #include_package_data=True,
-    install_requires=["protobuf<=3.20.3", "pypubsub>=4.0.3", "paho-mqtt", "aprslib"],
+    install_requires=["protobuf<=3.20.3", "pypubsub>=4.0.3", "paho-mqtt", "aprslib", "pyTelegramBotAPI"],
     python_requires='>=3.6',
     packages=["meshtastic_mqtt_aprs"],
     entry_points={

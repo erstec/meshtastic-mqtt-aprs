@@ -47,11 +47,16 @@ Logs:
 
 # Running as a Docker container
 Create volume for persistent storage:
+
 `docker volume create meshtastic-db`
+
 Build the image:
+
 `docker build -t meshtastic-mqtt-aprs .`
+
 Run the container, passing all required environment variables:
-docker run -d --restart unless-stopped --mount type=volume,src=meshtastic-db,target=/opt/meshtastic-mqtt-aprs --env MSH_MQTT_SERVER=<mqtt server ip/host> --env MSH_MQTT_USER=<mqtt username> --env MSH_MQTT_PSW=<mqtt password> --env MSH_APRS_PORT=<aprs-is port> --env MSH_APRS_CALL=<aprs-is callsign> --env MSH_APRS_HOST=<aprs-is host/ip> --env MSH_APRS_PASS=<aprs-is pass> meshtastic-mqtt-aprs
+
+`docker run -d --restart unless-stopped --mount type=volume,src=meshtastic-db,target=/opt/meshtastic-mqtt-aprs --env MSH_MQTT_SERVER=<mqtt server ip/host> --env MSH_MQTT_USER=<mqtt username> --env MSH_MQTT_PSW=<mqtt password> --env MSH_APRS_PORT=<aprs-is port> --env MSH_APRS_CALL=<aprs-is callsign> --env MSH_APRS_HOST=<aprs-is host/ip> --env MSH_APRS_PASS=<aprs-is pass> --env TELEGRAM_TOKEN= --env TELEGRAM_CHATID= meshtastic-mqtt-aprs`
 
 
 # Copyright notice
