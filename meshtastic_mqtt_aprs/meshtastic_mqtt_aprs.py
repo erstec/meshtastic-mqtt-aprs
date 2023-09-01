@@ -188,14 +188,21 @@ class MeshtasticMQTT():
 
                     from_node = str(json_unpacked["from"])
 
+                    # Normalize from_node, as sometimes it is negative and converts like 0xFFFFFFFFabcdefgh
                     from_node_int = int(from_node) & 0xFFFFFFFF
                     print(f"From node: [{from_node}] => {from_node_int}")
                     from_node = str(from_node_int)
-                    print(f"From node: [{from_node}]")
+                    print(f"From node result: [{from_node}]")
 
                     to_node = str(json_unpacked["to"])
 
                     msg_id = str(json_unpacked["id"])
+
+                    # Normalize message id, as sometimes it is negative and converts like 0xFFFFFFFFabcdefgh
+                    msg_id_int = int(msg_id) & 0xFFFFFFFF
+                    print(f"Message ID: [{msg_id}] => {msg_id_int}")
+                    msg_id = str(msg_id_int)
+                    print(f"Message ID result: [{msg_id}]")
 
                     if json_unpacked["from"] == 4:
                         print("ID = 4 detected! Aborting!")
@@ -660,7 +667,7 @@ class MeshtasticMQTT():
                             print("(CALL DB) Call is in DB, sending to Telegram")
                             #now = datetime.utcnow()
                             #TimeStamp = now.strftime("%d%H%M")
-                            Comment = 'Message from ' + self.calldict[from_node][0] + ' ' + self.calldict[from_node][1] + ': ' + payload["text"]
+                            Comment = '[' + topic_mode + '] Message from ' + self.calldict[from_node][0] + ' ' + self.calldict[from_node][1] + ': ' + payload["text"]
                             print("Sending Telegram message " + Comment)
                             self.bot.send_message(self.telegramChatId, Comment)
                         else:
