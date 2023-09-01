@@ -20,13 +20,15 @@ from paho.mqtt import client as mqtt_client
 from paho.mqtt import client as mqtt_client
 from google.protobuf.json_format import MessageToJson
 
+import telebot
+
 #uncomment for AppDaemon
 #import hassapi as hass
 
 #swap for AppDaemon
 #class MeshtasticMQTT(hass.Hass=None):
 class MeshtasticMQTT():
-    print ("Meshtastic MQTT APRS 2.1.2")
+    print ("Meshtastic MQTT APRS 2.1.5")
 
     parser = argparse.ArgumentParser(description='Meshtastic MQTT APRS', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--mqttServer', default='localhost', help='MQTT Broker Address')
@@ -41,6 +43,9 @@ class MeshtasticMQTT():
     parser.add_argument('aprsPass', help='APRS Passcode')
     parser.add_argument('--aprsTable', default='/', help='APRS Table')
     parser.add_argument('--aprsSymbol', default='`', help='APRS Symbol')
+
+    parser.add_argument('--telegramToken', default='', help='Telegram Token')
+    parser.add_argument('--telegramChatId', default='', help='Telegram Chat ID')
 
     args = parser.parse_args()
     config = vars(args)
@@ -68,6 +73,9 @@ class MeshtasticMQTT():
     aprsTable = config['aprsTable']
     aprsSymbol = config['aprsSymbol']
 
+    telegramToken = config['telegramToken']
+    telegramChatId = config['telegramChatId']
+
     # APRS Telemetry
     # Values: voltage, current, temperature, relative_humidity, barometric_pressure
     aprsTlmNames = "Volt,Curr,Temp,Hum,Press"
@@ -81,6 +89,9 @@ class MeshtasticMQTT():
 
     current_data = {
     }
+
+    # Telegram Bot
+    bot = telebot.TeleBot(telegramToken)
     
     print("Loading CallDB...")
     try:
@@ -636,6 +647,8 @@ class MeshtasticMQTT():
                         "to": to_node
                     }
                     client.publish(self.prefix + from_node + "/text_message", json.dumps(text))
+
+                    self.bot.send_message(self.telegramChatId, f"Message from {from_node}: {payload['text']}")
 
                     # Save message ID to DB to avoid duplicate messages parsing
                     if from_node in self.current_data:
