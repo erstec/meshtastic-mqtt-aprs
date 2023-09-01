@@ -650,8 +650,15 @@ class MeshtasticMQTT():
                     client.publish(self.prefix + from_node + "/text_message", json.dumps(text))
 
                     if self.telegramToken != "" and self.telegramChatId != "":
-                        print("Sending Telegram message")
-                        self.bot.send_message(self.telegramChatId, f"Message from {from_node}: {payload['text']}")
+                        if from_node in self.calldict:
+                            print("(CALL DB) Call is in DB, sending to Telegram")
+                            #now = datetime.utcnow()
+                            #TimeStamp = now.strftime("%d%H%M")
+                            Comment = 'Message from ' + self.calldict[from_node][0] + ' ' + self.calldict[from_node][1] + ': ' + payload["text"]
+                            print("Sending Telegram message " + Comment)
+                            self.bot.send_message(self.telegramChatId, Comment)
+                        else:
+                            print("(CALL DB) Call is NOT in DB, skip Telegram message")
 
                     # Save message ID to DB to avoid duplicate messages parsing
                     if from_node in self.current_data:
