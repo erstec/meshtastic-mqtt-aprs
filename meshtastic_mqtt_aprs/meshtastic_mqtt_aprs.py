@@ -91,7 +91,8 @@ class MeshtasticMQTT():
     }
 
     # Telegram Bot
-    bot = telebot.TeleBot(telegramToken)
+    if telegramToken != "" and telegramChatId != "":
+        bot = telebot.TeleBot(telegramToken)
     
     print("Loading CallDB...")
     try:
@@ -648,7 +649,9 @@ class MeshtasticMQTT():
                     }
                     client.publish(self.prefix + from_node + "/text_message", json.dumps(text))
 
-                    self.bot.send_message(self.telegramChatId, f"Message from {from_node}: {payload['text']}")
+                    if self.telegramToken != "" and self.telegramChatId != "":
+                        print("Sending Telegram message")
+                        self.bot.send_message(self.telegramChatId, f"Message from {from_node}: {payload['text']}")
 
                     # Save message ID to DB to avoid duplicate messages parsing
                     if from_node in self.current_data:
