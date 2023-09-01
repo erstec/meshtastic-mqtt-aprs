@@ -189,7 +189,7 @@ class MeshtasticMQTT():
                     from_node = str(json_unpacked["from"])
 
                     from_node_int = int(from_node) & 0xFFFFFFFF
-                    print(f"From node: [{from_node] => {from_node_int}")
+                    print(f"From node: [{from_node}] => {from_node_int}")
                     from_node = str(from_node_int)
                     print(f"From node: [{from_node}]")
 
