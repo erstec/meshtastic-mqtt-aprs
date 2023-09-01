@@ -187,13 +187,15 @@ class MeshtasticMQTT():
                     # print(payload)
 
                     from_node = str(json_unpacked["from"])
+
+                    from_node_int = int(from_node) & 0xFFFFFFFF
+                    print(f"From node: [{from_node] => {from_node_int}")
+                    from_node = str(from_node_int)
+                    print(f"From node: [{from_node}]")
+
                     to_node = str(json_unpacked["to"])
 
                     msg_id = str(json_unpacked["id"])
-                    msg_id_int = int(msg_id) & 0xFFFFFFFF
-                    print(f"Message ID: [{msg_id}] => {msg_id_int}")
-                    msg_id = str(msg_id_int)
-                    print(f"Message ID: {msg_id}")
 
                     if json_unpacked["from"] == 4:
                         print("ID = 4 detected! Aborting!")
