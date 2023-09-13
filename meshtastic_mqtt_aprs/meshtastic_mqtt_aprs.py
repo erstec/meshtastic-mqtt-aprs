@@ -134,12 +134,14 @@ class MeshtasticMQTT():
         def on_connect(client, userdata, flags, rc):
             if rc == 0:
                 print("(RUN) Connected to MQTT Broker!")
+                client.subscribe(self.topics)
             else:
                 print("(RUN) Failed to connect, return code %d\n", rc)
 
         client = mqtt_client.Client(self.client_id)
         client.username_pw_set(self.username, self.password)
         client.on_connect = on_connect
+        # client.on_message = on_message
         client.connect(self.broker, self.port)
         return client
 
