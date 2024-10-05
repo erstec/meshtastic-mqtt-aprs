@@ -20,7 +20,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/erstec/meshtastic-mqtt-aprs",
     author="erstec",
-    author_email="ernis@fpvdev.com",
+    author_email="ly3ph@qsl.lt",
     license="MIT",
     classifiers=[
         "License :: OSI Approved :: MIT License",
@@ -28,7 +28,7 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     #include_package_data=True,
-    install_requires=["protobuf<=3.20.3", "pypubsub>=4.0.3", "paho-mqtt", "aprslib", "pyTelegramBotAPI"],
+    install_requires=["protobuf<=3.20.3", "pypubsub>=4.0.3", "paho-mqtt<2.0.0", "aprslib", "pyTelegramBotAPI"],
     python_requires='>=3.6',
     packages=["meshtastic_mqtt_aprs"],
     entry_points={
